@@ -290,6 +290,10 @@ class PackIdxV1(PackIdx):
         for i in xrange(self.fanout[255]):
             yield buffer(self.map, 256*4 + 24*i + 4, 20)
 
+    def hashes_sorted_by_ofs(self):
+        return sorted(((self._ofs_from_idx(i), str(obj))
+                       for i, obj in enumerate(self)))
+
 
 class PackIdxV2(PackIdx):
     """Object representation of a Git pack index (version 2) file."""
@@ -324,6 +328,10 @@ class PackIdxV2(PackIdx):
     def __iter__(self):
         for i in xrange(self.fanout[255]):
             yield buffer(self.map, 8 + 256*4 + 20*i, 20)
+
+    def hashes_sorted_by_ofs(self):
+        return sorted(((self._ofs_from_idx(i), str(obj))
+                       for i, obj in enumerate(self)))
 
 
 _mpi_count = 0
