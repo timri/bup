@@ -215,8 +215,6 @@ WVSTART "save/git-fsck"
 (
     set -e
     cd "$BUP_DIR" || exit 1
-    #git repack -Ad
-    #git prune
     (cd "$TOP/t/sampledata" && WVPASS bup save -vvn master /) || WVFAIL
     n=$(git fsck --full --strict 2>&1 | 
       egrep -v 'dangling (commit|tree|blob)' |
@@ -665,3 +663,49 @@ WVSTART "save disjoint top-level directories"
     # For now, assume that "ls -a" and "sort" use the same order.
     WVPASSEQ "$(bup ls -a src/latest)" "$(echo -e "$top_dir/\ntmp/" | sort)"
 ) || WVFAIL
+
+
+WVSTART 'repack'
+D=repack.tmp
+export BUP_DIR="$TOP/$D/.bup"
+rm -rf $D
+mkdir $D
+dd if=/dev/urandom of=$D/repack-file bs=1M count=10
+bup init
+
+# Index and save test tree to source bupdir
+bup index -ux "$D"
+bup save -n repack "$D"
+bup tag foo repack
+
+sleep 3
+
+bup index -ux "$D"
+bup save -n repack "$D"
+
+WVPASS bup repack -f
+
+bup index -ux "$D"
+bup save -n repack "$D"
+
+WVPASS bup repack -f
+WVPASS bup fsck
+
+WVPASS bup restore repack/latest$TOP/$D/repack-file -C $D/out
+WVPASS diff $D/repack-file $D/out/repack-file
+
+bup index -ux "$D"
+bup save -n repack "$D"
+
+WVPASS bup repack -n -f
+
+bup index -ux "$D"
+bup save -n repack "$D"
+if bup fsck --par2-ok; then
+    bup fsck -g
+
+    WVPASS bup repack -f
+
+    WVPASSEQ $(bup ls repack/ | wc -l) "7"
+    WVPASSEQ $(ls "$BUP_DIR/objects/pack" | grep "pack$" | wc -l) $(ls "$BUP_DIR/objects/pack" | grep "par2$" | grep -v "vol" | wc -l)
+fi

@@ -1060,3 +1060,72 @@ def tags():
             tags[c].append(name)  # more than one tag can point at 'c'
 
     return tags
+
+def traverse_commit(cp, sha_hex, needed_objects):
+    if sha_hex not in needed_objects:
+        needed_objects.add(sha_hex)
+        yield ('commit', sha_hex)
+
+        it = iter(cp.get(sha_hex))
+        type = it.next()
+        assert(type == 'commit')
+        tree_sha = "".join(it).split("\n")[0][5:].rstrip(" ")
+        for obj in traverse_objects(cp, tree_sha, needed_objects):
+            yield obj
+
+
+def traverse_objects(cp, sha_hex, needed_objects):
+    if sha_hex not in needed_objects:
+        needed_objects.add(sha_hex)
+        it = iter(cp.get(sha_hex))
+        type = it.next()
+
+        if type == 'commit':
+            yield ('commit', sha_hex)
+
+            tree_sha = "".join(it).split("\n")[0][5:].rstrip(" ")
+
+            for obj in traverse_objects(cp, tree_sha, needed_objects):
+                yield obj
+
+        if type == 'tree':
+            yield ('tree', sha_hex)
+
+            for (mode,mangled_name,sha) in tree_decode("".join(it)):
+                for obj in traverse_objects(cp, sha.encode('hex'),
+                                            needed_objects):
+                    yield obj
+
+        elif type == 'blob':
+            yield ('blob', sha_hex)
+
+class NeededObjects():
+    def __init__(self, pack_idx_list):
+        self.packs = [pack for pack in pack_idx_list.packs
+                               if isinstance(pack, PackIdx)]
+        self.pack_bitarrays = dict()
+        for pack in self.packs:
+            self.pack_bitarrays[pack.name] = BitArray(len(pack))
+
+    def __contains__(self, sha):
+        for pack in self.packs:
+            idx = pack._idx_from_hash(sha.decode('hex'))
+            if idx in self.pack_bitarrays[pack.name]:
+                return True
+        return False
+
+    def add(self, sha):
+        for pack in self.packs:
+            idx = pack._idx_from_hash(sha.decode('hex'))
+            self.pack_bitarrays[pack.name].add(idx)
+
+    def remove(self, sha):
+        for pack in self.packs:
+            idx = pack._idx_from_hash(sha.decode('hex'))
+            self.pack_bitarrays[pack.name].remove(idx)
+
+    def get_bitarray_for_pack(self, name):
+        if name in self.pack_bitarrays:
+            return self.pack_bitarrays[name]
+        else:
+            return None

@@ -361,6 +361,11 @@ mailing list (see below) if you'd like to help.
     We'll have to do it in a totally different way.  There are lots of
     options.  For now: make sure you've got lots of disk space :)
 
+    UPDATE: With `bup repack` you actually can prune away old backups.  Making
+    backups unreachable from backup-sets doesn't have a UI yet though and is
+    left as an exercise for the reader. *hint* *hint* `git filter-branch` can be
+    useful for this.
+
  - bup has never been tested on anything but Linux, MacOS, and Windows+Cygwin.
  
     There's nothing that makes it *inherently* non-portable, though, so
