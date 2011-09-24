@@ -869,3 +869,23 @@ def version_tag():
         if n.startswith('tag: bup-'):
             return n[9:]
     return 'unknown-%s' % _version.COMMIT[:7]
+
+class BitArray():
+    """Provide a memory efficient set() like interface for indices."""
+    def __init__(self, size):
+        self._data = 0
+        self._size = size
+
+    def add(self, i):
+        if i != None:
+            self._data = self._data | (1 << i)
+
+    def remove(self, i):
+        if i != None and i in self:
+            self._data = self._data ^ (1 << i)
+
+    def __contains__(self, i):
+        if i != None:
+            return ((self._data & (1 << i)) >> i) == 1
+        else:
+            return False

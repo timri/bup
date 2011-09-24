@@ -77,3 +77,12 @@ def test_grafted_path_components():
              [('', None), ('a', None), ('b', None), ('c', '/'),
               ('foo', '/foo'), ('bar', '/foo/bar')])
     WVEXCEPT(Exception, grafted_path_components, 'foo', [])
+
+@wvtest
+def test_bit_array():
+    ba = BitArray(10)
+    WVPASSEQ((10 in ba), False)
+    ba.add(10)
+    WVPASSEQ((10 in ba), True)
+    ba.remove(10)
+    WVPASSEQ((10 in ba), False)
