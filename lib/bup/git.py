@@ -1129,3 +1129,17 @@ class NeededObjects():
             return self.pack_bitarrays[name]
         else:
             return None
+
+def is_locked():
+    """Check if the bup repository is currently locked."""
+    return os.path.exists(repo('buplock'))
+
+def lock():
+    """Lock the bup repository."""
+    if not is_locked():
+        open(repo('buplock'), 'w').close()
+
+def unlock():
+    """Unlock the bup repository."""
+    if is_locked():
+        os.unlink(repo('buplock'))

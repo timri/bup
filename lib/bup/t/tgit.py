@@ -164,3 +164,23 @@ def test_check_repo_or_die():
         WVPASSEQ(e.code, 15)
     else:
         WVFAIL()
+
+
+@wvtest
+def test_lock():
+    os.environ['BUP_DIR'] = bupdir = 'pybuptest.tmp'
+    subprocess.call(['rm','-rf', bupdir])
+    git.init_repo(bupdir)
+
+    git.check_repo_or_die()
+
+    locked = git.is_locked()
+    WVPASSEQ(locked, False)
+
+    git.lock()
+    locked = git.is_locked()
+    WVPASSEQ(locked, True)
+
+    git.unlock()
+    locked = git.is_locked()
+    WVPASSEQ(locked, False)
