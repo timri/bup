@@ -709,3 +709,16 @@ if bup fsck --par2-ok; then
     WVPASSEQ $(bup ls repack/ | wc -l) "7"
     WVPASSEQ $(ls "$BUP_DIR/objects/pack" | grep "pack$" | wc -l) $(ls "$BUP_DIR/objects/pack" | grep "par2$" | grep -v "vol" | wc -l)
 fi
+
+WVSTART 'lock'
+D=lock.tmp
+export BUP_DIR="$TOP/$D/.bup"
+rm -rf $D
+mkdir $D
+bup init
+
+touch $D/foo
+bup index -ux $D
+touch $BUP_DIR/buplock
+WVPASSEQ "$(bup save -n foo $D 2>&1 | tail -n 1)" "error: the repository is currently locked"
+WVPASSEQ "$(bup repack 2>&1 | tail -n 1)" "error: the repository is currently locked"

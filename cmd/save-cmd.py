@@ -27,6 +27,10 @@ o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 git.check_repo_or_die()
+
+if git.is_locked():
+    o.fatal("the repository is currently locked")
+
 if not (opt.tree or opt.commit or opt.name):
     o.fatal("use one or more of -t, -c, -n")
 if not extra:
