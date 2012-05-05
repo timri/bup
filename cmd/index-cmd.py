@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys, stat, time, os
-from bup import options, git, index, drecurse
+from bup import options, git, index, drecurse, hlinkdb
 from bup.helpers import *
 from bup.hashsplit import GIT_MODE_TREE, GIT_MODE_FILE
 
@@ -55,6 +55,9 @@ def update_index(top, excluded_paths):
     rig = IterHelper(ri.iter(name=top))
     tstart = int(time.time())
 
+    hlinks = hlinkdb.HLinkDB()
+    hlinks.load(indexfile + '.hlink')
+
     hashgen = None
     if opt.fake_valid:
         def hashgen(name):
@@ -76,9 +79,18 @@ def update_index(top, excluded_paths):
             if rig.cur.exists():
                 rig.cur.set_deleted()
                 rig.cur.repack()
+                if rig.cur.nlink > 1 and not stat.S_ISDIR(rig.cur.mode):
+                    hlinks.del_path(rig.cur.name)
             rig.next()
         if rig.cur and rig.cur.name == path:    # paths that already existed
             if pst:
+                # Q: when can pst be false, and when it is, are we
+                # doing the right thing here wrt hardlinks?  For
+                # example, should del_path() be inside the pst guard?
+                if not stat.S_ISDIR(rig.cur.mode) and rig.cur.nlink > 1:
+                    hlinks.del_path(rig.cur.name)
+                if not stat.S_ISDIR(pst.st_mode) and pst.st_nlink > 1:
+                    hlinks.add_path(path, pst.st_dev, pst.st_ino)
                 rig.cur.from_stat(pst, tstart)
             if not (rig.cur.flags & index.IX_HASHVALID):
                 if hashgen:
@@ -90,6 +102,9 @@ def update_index(top, excluded_paths):
             rig.next()
         else:  # new paths
             wi.add(path, pst, hashgen = hashgen)
+            if not stat.S_ISDIR(pst.st_mode) and pst.st_nlink > 1:
+                hlinks.add_path(path, pst.st_dev, pst.st_ino)
+
     progress('Indexing: %d, done.\n' % total)
     
     if ri.exists():
@@ -114,6 +129,8 @@ def update_index(top, excluded_paths):
         wi.abort()
     else:
         wi.close()
+
+    hlinks.save(indexfile + '.hlink')
 
 
 optspec = """
