@@ -131,6 +131,59 @@ WVPASS bup save -r :$BUP_DIR -n r-test $D
 WVFAIL bup save -r :$BUP_DIR/fake/path -n r-test $D
 WVFAIL bup save -r :$BUP_DIR -n r-test $D/fake/path
 
+# Can probably get a meaningful result if we have access to loopback.
+if losetup -a &>/dev/null; then
+    index="$BUP_DIR/st_dev_index"
+    rm --force "$index"
+    rm -rf dev1 dev2
+
+    # Silent setup errors might ruin the test, so look out for them.
+    (
+        set -o errexit
+        # Mount a filesystem image at the same mountpoint but with different
+        # st_dev each time and see whether index changes.  Mount is touchy
+        # about adding identical-looking devices on the same directory so use
+        # bind mounts (rather than risk leaving an inconsistent mtab via "mount
+        # --no-mtab ...").
+        mkdir dev1 dev2
+        mount --read-only -o loop "$TOP/t/sampledata/st_dev.squashfs" dev1/
+        mount --read-only -o loop "$TOP/t/sampledata/st_dev.squashfs" dev2/
+
+        # First test: capture on dev1 then compare to dev2 with default behaviour
+        mount --bind dev1/ "$D"
+        bup index --indexfile $index --update "$D" \
+                 --fake-valid "$D" \
+                 --fake-valid "$D/file"
+        mount --bind dev2/ "$D" # second mount hides first
+        bup index --indexfile $index --update "$D"
+        WVPASSEQ "$(bup index --indexfile $index --status "$D")" \
+"M $D/file
+M $D/"
+
+        # Second test: capture on $dev2 then compare to $dev1 with --ignore-dev
+        bup index --indexfile $index --update "$D" \
+                 --fake-valid "$D" \
+                 --fake-valid "$D/file"
+        umount "$D"
+        bup index --indexfile $index --update --ignore-dev "$D"
+        WVPASSEQ "$(bup index --indexfile $index --status "$D")" \
+"  $D/file
+  $D/"
+    )
+    group_exit=$?
+
+    # Always tear down first
+    umount "$D" # might be mounted upon twice
+    umount "$D" dev1/ dev2/
+    rm -rf dev1 dev2
+    rm $index
+
+    WVPASSEQ "$group_exit" "0"
+else
+    # Does wvtest support Perlish announced test skips?
+    echo "losetup not in path, or insufficient permissions on /dev/loop; skipping st_dev tests"
+fi
+
 WVSTART "split"
 echo a >a.tmp
 echo b >b.tmp

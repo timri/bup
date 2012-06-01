@@ -62,14 +62,14 @@ def index_negative_timestamps():
     tstart = time.time() * ns_per_sec
     tmax = tstart - ns_per_sec
     e = index.BlankNewEntry("foo", 0, tmax)
-    e.from_stat(xstat.stat("foo"), 0, tstart)
+    e.from_stat(xstat.stat("foo"), 0, tstart, False)
     assert len(e.packed())
     WVPASS()
 
     # Jun 10, 1893
     os.utime("foo", (-0x80000000, -0x80000000))
     e = index.BlankNewEntry("foo", 0, tmax)
-    e.from_stat(xstat.stat("foo"), 0, tstart)
+    e.from_stat(xstat.stat("foo"), 0, tstart, False)
     assert len(e.packed())
     WVPASS()
 

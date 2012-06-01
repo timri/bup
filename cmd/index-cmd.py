@@ -105,7 +105,7 @@ def update_index(top, excluded_paths):
             # in from_stat().
             meta.ctime = meta.mtime = meta.atime = 0
             meta_ofs = msw.store(meta)
-            rig.cur.from_stat(pst, meta_ofs, tstart)
+            rig.cur.from_stat(pst, meta_ofs, tstart, opt.ignore_dev)
             if not (rig.cur.flags & index.IX_HASHVALID):
                 if hashgen:
                     (rig.cur.gitmode, rig.cur.sha) = hashgen(path)
@@ -166,6 +166,7 @@ check      carefully check index file integrity
  Options:
 H,hash     print the hash for each object next to its name
 l,long     print more information about each file
+D,ignore-dev  treat objects as up-to-date if they've (only) moved filesystem
 fake-valid mark all index entries as up-to-date even if they aren't
 fake-invalid mark all index entries as invalid
 f,indexfile=  the name of the index file (normally BUP_DIR/bupindex)
@@ -182,6 +183,8 @@ if not (opt.modified or opt['print'] or opt.status or opt.update or opt.check):
     opt.update = 1
 if (opt.fake_valid or opt.fake_invalid) and not opt.update:
     o.fatal('--fake-{in,}valid are meaningless without -u')
+if opt.ignore_dev and not opt.update:
+    o.fatal('--ignore-dev is meaningless without -u')
 if opt.fake_valid and opt.fake_invalid:
     o.fatal('--fake-valid is incompatible with --fake-invalid')
 
