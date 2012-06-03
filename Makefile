@@ -158,4 +158,6 @@ clean: Documentation/clean
 		testfs.img lib/bup/t/testfs.img
 	if test -e bupmeta.tmp/testfs; \
 	  then umount bupmeta.tmp/testfs || true; fi
+	if test -e bupmeta.tmp/testfs-limited; \
+	  then umount bupmeta.tmp/testfs-limited || true; fi
 	rm -rf *.tmp t/*.tmp lib/*/*/*.tmp build lib/bup/build
