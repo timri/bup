@@ -90,6 +90,7 @@ try:
 
 
     if traversed_objects_counter == 0:
+        git.unlock()
         o.fatal('No reachable objects found.')
 
 

@@ -721,4 +721,4 @@ touch $D/foo
 bup index -ux $D
 touch $BUP_DIR/buplock
 WVPASSEQ "$(bup save -n foo $D 2>&1 | tail -n 1)" "error: the repository is currently locked"
-WVPASSEQ "$(bup repack 2>&1 | tail -n 1)" "error: the repository is currently locked"
+WVPASSEQ "$(bup repack -f 2>&1 | tail -n 1)" "error: the repository is currently locked"
