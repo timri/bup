@@ -11,7 +11,7 @@ bup-index - print and/or update the bup filesystem index
 bup index \<-p|-m|-s|-u\> [-H] [-l] [-x] [\--fake-valid]
 [\--fake-invalid] [\--check] [-f *indexfile*] [\--exclude *path*]
 [\--exclude-from *filename*] [\--exclude-if-present *filename*]
-[-v] \<filenames...\>
+[\--exclude-caches] [-v] \<filenames...\>
 
 # DESCRIPTION
 
@@ -155,6 +155,12 @@ does, due to the accommodations described above.
 :   exclude all directories that contain the specified file.
     So you can "touch .do-not-backup-me" to exclude a directory
     from backup.
+
+\--exclude-caches
+:   exclude all directories that contain a file CACHEDIR.TAG, whose
+    content begins with "Signature: 8a477f597d28d172789f06886806bc55".
+    For more information on cachedir-tagging, see
+    http://www.brynosaurus.com/cachedir/
 
 -v, \--verbose
 :   increase log output during update (can be used more

@@ -50,12 +50,22 @@ def _dirlist():
 
 
 def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
-		exclude_if_present=None):
+		exclude_if_present=None, exclude_caches=None):
     for (name,pst) in _dirlist():
         if name.endswith('/'):
             if exclude_if_present != None and os.path.exists(prepend+name+exclude_if_present):
                 debug1('Skipping %r: exclude-file present.\n' % (prepend+name))
                 continue
+            if exclude_caches:
+                tag_filename = 'CACHEDIR.TAG'
+                tag_contents = 'Signature: 8a477f597d28d172789f06886806bc55'
+                if os.path.exists(prepend+name+tag_filename):
+                    f = open(prepend+name+tag_filename, 'rb')
+                    data = f.read(len(tag_contents))
+                    f.close()
+                    if data == tag_contents:
+                        debug1('Skipping %r: excluding cache dir' % (prepend+name))
+                        continue
             if xdev != None and pst.st_dev != xdev:
                 debug1('Skipping %r: different filesystem.\n' % (prepend+name))
                 continue
@@ -75,14 +85,15 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
                 for i in _recursive_dirlist(prepend=prepend+name, xdev=xdev,
                                             bup_dir=bup_dir,
                                             excluded_paths=excluded_paths,
-                                            exclude_if_present=exclude_if_present):
+                                            exclude_if_present=exclude_if_present,
+                                            exclude_caches=exclude_caches):
                     yield i
                 os.chdir('..')
         yield (prepend + name, pst)
 
 
 def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None,
-		exclude_if_present=None):
+		exclude_if_present=None,exclude_caches=None):
     startdir = OsFile('.')
     try:
         assert(type(paths) != type(''))
@@ -111,7 +122,8 @@ def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None,
                 for i in _recursive_dirlist(prepend=prepend, xdev=xdev,
                                             bup_dir=bup_dir,
                                             excluded_paths=excluded_paths,
-                                            exclude_if_present=exclude_if_present):
+                                            exclude_if_present=exclude_if_present,
+                                            exclude_caches=exclude_caches):
                     yield i
                 startdir.fchdir()
             else:
