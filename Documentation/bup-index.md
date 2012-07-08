@@ -10,7 +10,8 @@ bup-index - print and/or update the bup filesystem index
 
 bup index \<-p|-m|-s|-u\> [-H] [-l] [-x] [\--fake-valid]
 [\--fake-invalid] [\--check] [-f *indexfile*] [\--exclude *path*]
-[\--exclude-from *filename*] [-v] \<filenames...\>
+[\--exclude-from *filename*] [\--exclude-if-present *filename*]
+[-v] \<filenames...\>
 
 # DESCRIPTION
 
@@ -149,6 +150,11 @@ does, due to the accommodations described above.
 \--exclude-from=*filename*
 :   a file that contains exclude paths (can be used more
     than once)
+
+\--exclude-if-present=*filename*
+:   exclude all directories that contain the specified file.
+    So you can "touch .do-not-backup-me" to exclude a directory
+    from backup.
 
 -v, \--verbose
 :   increase log output during update (can be used more

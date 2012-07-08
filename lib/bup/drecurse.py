@@ -49,9 +49,13 @@ def _dirlist():
     return l
 
 
-def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None):
+def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
+		exclude_if_present=None):
     for (name,pst) in _dirlist():
         if name.endswith('/'):
+            if exclude_if_present != None and os.path.exists(prepend+name+exclude_if_present):
+                debug1('Skipping %r: exclude-file present.\n' % (prepend+name))
+                continue
             if xdev != None and pst.st_dev != xdev:
                 debug1('Skipping %r: different filesystem.\n' % (prepend+name))
                 continue
@@ -70,13 +74,15 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None):
             else:
                 for i in _recursive_dirlist(prepend=prepend+name, xdev=xdev,
                                             bup_dir=bup_dir,
-                                            excluded_paths=excluded_paths):
+                                            excluded_paths=excluded_paths,
+                                            exclude_if_present=exclude_if_present):
                     yield i
                 os.chdir('..')
         yield (prepend + name, pst)
 
 
-def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None):
+def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None,
+		exclude_if_present=None):
     startdir = OsFile('.')
     try:
         assert(type(paths) != type(''))
@@ -104,7 +110,8 @@ def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None):
                 prepend = os.path.join(path, '')
                 for i in _recursive_dirlist(prepend=prepend, xdev=xdev,
                                             bup_dir=bup_dir,
-                                            excluded_paths=excluded_paths):
+                                            excluded_paths=excluded_paths,
+                                            exclude_if_present=exclude_if_present):
                     yield i
                 startdir.fchdir()
             else:

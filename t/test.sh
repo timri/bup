@@ -394,6 +394,22 @@ b
 f"
 rm $EXCLUDE_FILE
 
+WVSTART "exclude-if-present"
+D=exclude-if-present.tmp
+rm -rf $D
+mkdir $D
+export BUP_DIR="$D/.bup"
+WVPASS bup init
+touch $D/a
+WVPASS bup random 128k >$D/b
+mkdir $D/d $D/d/e
+WVPASS bup random 512 >$D/f
+touch $D/d/exclude-file
+WVPASS bup index -ux --exclude-if-present exclude-file $D
+bup save -n exclude $D
+WVPASSEQ "$(bup ls exclude/latest/$TOP/$D/)" "a
+b
+f"
 
 WVSTART "save --strip"
 (

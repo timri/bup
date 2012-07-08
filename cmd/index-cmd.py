@@ -69,7 +69,8 @@ def update_index(top, excluded_paths):
     bup_dir = os.path.abspath(git.repo())
     for (path,pst) in drecurse.recursive_dirlist([top], xdev=opt.xdev,
                                                  bup_dir=bup_dir,
-                                                 excluded_paths=excluded_paths):
+                                                 excluded_paths=excluded_paths,
+                                                 exclude_if_present=opt['exclude-if-present']):
         if opt.verbose>=2 or (opt.verbose==1 and stat.S_ISDIR(pst.st_mode)):
             sys.stdout.write('%s\n' % path)
             sys.stdout.flush()
@@ -170,6 +171,7 @@ fake-invalid mark all index entries as invalid
 f,indexfile=  the name of the index file (normally BUP_DIR/bupindex)
 exclude=   a path to exclude from the backup (can be used more than once)
 exclude-from= a file that contains exclude paths (can be used more than once)
+exclude-if-present= exclude directory if the given file is present
 v,verbose  increase log output (can be used more than once)
 x,xdev,one-file-system  don't cross filesystem boundaries
 """
