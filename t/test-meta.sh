@@ -55,7 +55,7 @@ compare-trees()
         set -e
         set -o pipefail
         tmpfile="$(mktemp)"
-        trap "rm -rf ${tmpfile}" EXIT
+        trap "rm -rf '${tmpfile}'" EXIT
         rsync -ni -aHAX "$1" "$2" > "${tmpfile}"
         if test $(wc -l < "${tmpfile}") != 0; then
             echo "ERROR: detected differences between $1 and $2"
