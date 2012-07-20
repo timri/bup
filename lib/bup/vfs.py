@@ -90,6 +90,11 @@ def _chunkiter(hash, startofs, repo_dir=None):
         else:
             yield ''.join(cp(repo_dir).join(sha.encode('hex')))[skipmore:]
 
+def _depth(node):
+    if node.parent == None:
+        return 0
+    else:
+        return _depth(node.parent) + 1
 
 class _ChunkReader:
     def __init__(self, hash, isdir, startofs, repo_dir=None):
@@ -526,11 +531,36 @@ class TagDir(Node):
                 date = git.get_commit_dates([sha.encode('hex')],
                                             repo_dir=self._repo_dir)[0]
                 commithex = sha.encode('hex')
-                target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
+                commitdir = ('../' * _depth(self)) + '.commit/'
+                target = commitdir + '%s/%s' % (commithex[:2], commithex[2:])
                 tag1 = FakeSymlink(self, name, target, self._repo_dir)
                 tag1.ctime = tag1.mtime = date
                 self._subs[name] = tag1
 
+class BranchDir(Node):
+    """A directory that represents part of a ref name"""
+    def __init__(self, parent, name, repo_dir = None):
+        Node.__init__(self, parent, name, GIT_MODE_TREE, EMPTY_SHA, repo_dir)
+        self.subitems = []
+
+    def _mksubs(self):
+        self._subs = {}
+        for (name, date, sha) in self.subitems:
+            parts = name.split('/')
+            head = parts[0]
+            rest = parts[1:]
+            if not rest:
+                n1 = BranchList(self, name, sha, self._repo_dir)
+                n1.ctime = n1.mtime = date
+                self._subs[name] = n1
+            else:
+                n1 = self._subs.get(head)
+                if not n1:
+                    n1 = BranchDir(self, head, self._repo_dir)
+                    self._subs[head] = n1
+                else:
+                    pass
+                n1.subitems.append( ("/".join(rest), date, sha) )
 
 class BranchList(Node):
     """A list of links to commits reachable by a branch in bup's repository.
@@ -553,7 +583,8 @@ class BranchList(Node):
             l = time.localtime(date)
             ls = time.strftime('%Y-%m-%d-%H%M%S', l)
             commithex = commit.encode('hex')
-            target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
+            commitdir = ('../' * _depth(self)) + '.commit/'
+            target = commitdir + '%s/%s' % (commithex[:2], commithex[2:])
             n1 = FakeSymlink(self, ls, target, self._repo_dir)
             n1.ctime = n1.mtime = date
             self._subs[ls] = n1
@@ -563,12 +594,15 @@ class BranchList(Node):
                 t1.ctime = t1.mtime = date
                 self._subs[tag] = t1
 
-        (date, commit) = latest
-        commithex = commit.encode('hex')
-        target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
-        n1 = FakeSymlink(self, 'latest', target, self._repo_dir)
-        n1.ctime = n1.mtime = date
-        self._subs['latest'] = n1
+        latest = max(revs)
+        if latest:
+            (date, commit) = latest
+            commithex = commit.encode('hex')
+            commitdir = ('../' * _depth(self)) + '.commit/'
+            target = commitdir + '%s/%s' % (commithex[:2], commithex[2:])
+            n1 = FakeSymlink(self, 'latest', target, self._repo_dir)
+            n1.ctime = n1.mtime = date
+            self._subs['latest'] = n1
 
 
 class RefList(Node):
@@ -599,6 +633,18 @@ class RefList(Node):
                                       for (name, sha) in refs_info],
                                      repo_dir=self._repo_dir)
         for (name, sha), date in zip(refs_info, dates):
-            n1 = BranchList(self, name, sha, self._repo_dir)
-            n1.ctime = n1.mtime = date
-            self._subs[name] = n1
+                parts = name.split('/')
+                head = parts[0]
+                rest = parts[1:]
+                if not rest:
+                    n1 = BranchList(self, name, sha, self._repo_dir)
+                    n1.ctime = n1.mtime = date
+                    self._subs[name] = n1
+                else:
+                    n1 = self._subs.get(head)
+                    if not n1:
+                        n1 = BranchDir(self, head, self._repo_dir)
+                        self._subs[head] = n1
+                    else:
+                        pass
+                    n1.subitems.append( ("/".join(rest), date, sha) )
