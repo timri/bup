@@ -52,6 +52,7 @@ git.lock()
 
 try:
     pl = git.PackIdxList(git.repo('objects/pack'))
+    pl.refresh(skip_midx = True)
     total_objects = len(pl)
 
     needed_objects = git.NeededObjects(pl)
