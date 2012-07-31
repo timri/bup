@@ -745,3 +745,27 @@ bup init
 WVPASSEQ "$(bup repack -f 2>&1 | tail -n 1)" "error: No reachable objects found."
 WVPASSEQ $(ls "$BUP_DIR/buplock" | wc -l) "0"
 WVPASSNE "$(bup repack -f 2>&1 | tail -n 1)" "error: the repository is currently locked"
+
+WVSTART "repack-and-midx"
+D=repack-midx.tmp
+export BUP_DIR="$TOP/$D/.bup"
+rm -rf $D
+mkdir $D
+bup init
+touch $D/foo
+bup index -ux "$D"
+bup save -n repack-midx --strip "$D"
+bup index --fake-invalid -ux "$D"
+bup save -n repack-midx --strip "$D"
+# We have 2 packs...
+WVPASSEQ $(ls "$BUP_DIR/objects/pack" | grep "pack$" | wc -l) "2"
+# ... which have a total of 4 objects
+# (blob + tree + commit in 1st pack, commit only (referencing 1st tree+blob) in second pack)
+WVPASSEQ "$(GIT_DIR=$BUP_DIR git count-objects -v | grep 'in-pack')" "in-pack: 4"
+# force a midx, this "hides" the normal idx in repack
+WVPASS bup midx -f
+# Full output of broken repack:
+#Traversing repack-midx to find needed objects...
+#Traversing objects (6/4), done. Skipped -2
+#Writing new packfiles...
+#Writing objects: 0, done.
