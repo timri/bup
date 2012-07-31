@@ -715,6 +715,12 @@ if bup fsck --par2-ok; then
     # One par2-volume file per pack
     WVPASSEQ $(ls "$BUP_DIR/objects/pack" | grep "pack$" | wc -l) $(ls "$BUP_DIR/objects/pack" | grep "par2$" | grep "vol" | wc -l)
 fi
+bup save -n repack "$D"
+bup save -n repack "$D"
+# Force create a midx-file
+bup midx -f
+WVPASS bup repack -f
+WVPASSNE "$(bup save -n repack "$D" 2>&1 | head -n 1 | cut -d' ' -f1,2,4)" "warning: index missing"
 
 WVSTART 'lock'
 D=lock.tmp
