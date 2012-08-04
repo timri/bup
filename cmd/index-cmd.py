@@ -105,7 +105,8 @@ def update_index(top, excluded_paths):
             # in from_stat().
             meta.ctime = meta.mtime = meta.atime = 0
             meta_ofs = msw.store(meta)
-            rig.cur.from_stat(pst, meta_ofs, tstart, opt.ignore_dev)
+            rig.cur.from_stat(pst, meta_ofs, tstart,
+                              ignore_dev=opt.ignore_dev)
             if not (rig.cur.flags & index.IX_HASHVALID):
                 if hashgen:
                     (rig.cur.gitmode, rig.cur.sha) = hashgen(path)

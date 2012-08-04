@@ -174,7 +174,7 @@ class Entry:
             log('pack error: %s (%r)\n' % (e, self))
             raise
 
-    def from_stat(self, st, meta_ofs, tstart, ignore_dev):
+    def from_stat(self, st, meta_ofs, tstart, ignore_dev=False):
         old = (0 if ignore_dev else self.dev,
                self.ino, self.nlink, self.ctime, self.mtime,
                self.uid, self.gid, self.size, self.flags & IX_EXISTS)
