@@ -174,8 +174,9 @@ class Node:
         self._metadata = None
 
     def __str__(self):
-        return "<bup.vfs.Dir object at X - name:%s hash:%s parent:%s>" \
-            % (repr(self.name), self.hash.encode('hex'),
+        return "<%s object at X - name:%s hash:%s parent:%s>" \
+            % (self.__class__,
+               repr(self.name), self.hash.encode('hex'),
                repr(self.parent.name) if self.parent.name else None)
 
     def __cmp__(a, b):
