@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import errno, sys, stat
+import errno, sys, stat, re
 from bup import options, git, metadata, vfs
 from bup.helpers import *
 
@@ -8,6 +8,7 @@ bup restore [-C outdir] </branch/revision/path/to/dir ...>
 --
 C,outdir=   change to given outdir before extracting files
 numeric-ids restore numeric IDs (user, group, etc.) rather than names
+exclude-rx= skip paths that match the unanchored regular expression
 v,verbose   increase log output (can be used more than once)
 q,quiet     don't show progress meter
 """
@@ -112,12 +113,26 @@ def write_file_content(fullname, n):
         outf.close()
 
 
+def should_exclude_path(path, exclude_rxs):
+    for rx in exclude_rxs:
+        if rx.search(path):
+            debug1('Skipping %r: excluded via rx.\n' % path)
+            return True
+    return False
+
+
 def do_node(top, n, meta=None):
     # meta will be None for dirs, and when there is no .bupm (i.e. no metadata)
     global total_restored, opt
     meta_stream = None
     try:
         fullname = n.fullname(stop_at=top)
+        # Match behavior of index --exclude-rx with respect to paths.
+        exclude_candidate = '/' + fullname
+        if(stat.S_ISDIR(n.mode)):
+            exclude_candidate += '/'
+        if should_exclude_path(exclude_candidate, exclude_rxs):
+            return
         # If this is a directory, its metadata is the first entry in
         # any .bupm file inside the directory.  Get it.
         if(stat.S_ISDIR(n.mode)):
@@ -154,6 +169,7 @@ def do_node(top, n, meta=None):
         if meta_stream:
             meta_stream.close()
 
+
 handle_ctrl_c()
 
 o = options.Options(optspec)
@@ -165,6 +181,13 @@ top = vfs.RefList(None)
 if not extra:
     o.fatal('must specify at least one filename to restore')
     
+exclude_rxs = [v for f, v in flags if f == '--exclude-rx']
+for i in range(len(exclude_rxs)):
+    try:
+        exclude_rxs[i] = re.compile(exclude_rxs[i])
+    except re.error:
+        o.fatal('invalid --exclude-rx pattern:' % rx)
+
 if opt.outdir:
     mkdirp(opt.outdir)
     os.chdir(opt.outdir)
