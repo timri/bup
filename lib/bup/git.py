@@ -834,6 +834,10 @@ def init_repo(path=None):
     p = subprocess.Popen(['git', 'config', 'core.logAllRefUpdates', 'true'],
                          stdout=sys.stderr, preexec_fn = _gitenv)
     _git_wait('git config', p)
+    # Set our packsize-limit to git as well (in case someone wants to run git repack)
+    p = subprocess.Popen(['git', 'config', 'pack.packSizeLimit', str(max_pack_size)],
+                         stdout=sys.stderr, preexec_fn = _gitenv)
+    _git_wait('git config', p)
 
 
 def check_repo_or_die(path=None):
