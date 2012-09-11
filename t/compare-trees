@@ -27,7 +27,7 @@ do
         h) usage; exit 0;;
         c) verify_content=" --checksum";;
         x) verify_content="";;
-        ?) usage; exit 1;;
+        ?) usage 1>&2; exit 1;;
     esac
 done
 
@@ -35,7 +35,7 @@ shift $(($OPTIND - 1))
 
 if ! test $# -eq 2
 then
-    usage 
+    usage 1>&2
     exit 1
 fi
 
