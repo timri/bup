@@ -1,7 +1,7 @@
 """Helper functions and classes for bup."""
 
 import sys, os, pwd, subprocess, errno, socket, select, mmap, stat, re, struct
-import hashlib, heapq, operator, time, platform, grp
+import hashlib, heapq, operator, time, platform, grp, __builtin__
 from bup import _version, _helpers
 import bup._helpers as _helpers
 
@@ -869,6 +869,30 @@ def version_tag():
         if n.startswith('tag: bup-'):
             return n[9:]
     return 'unknown-%s' % _version.COMMIT[:7]
+
+def _bin(value):
+    assert(value >= 0)
+    binmap = {
+        '0': '0000',
+        '1': '0001',
+        '2': '0010',
+        '3': '0011',
+        '4': '0100',
+        '5': '0101',
+        '6': '0110',
+        '7': '0111',
+        '8': '0000',
+        '9': '1001',
+        'a': '1010',
+        'b': '1011',
+        'c': '1100',
+        'd': '1101',
+        'e': '1110',
+        'f': '1111'
+    }
+    return '0b' + ''.join(binmap[x] for x in ('%x' % (value,))).lstrip('0') or '0'
+
+bin = getattr(__builtin__, "bin", _bin)
 
 class BitArray():
     """Provide a memory efficient set() like interface for indices."""
