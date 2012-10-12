@@ -913,3 +913,7 @@ class BitArray():
             return ((self._data & (1 << i)) >> i) == 1
         else:
             return False
+
+    def ratio(self):
+        return float(bin(self._data).count("1")) / self._size
+

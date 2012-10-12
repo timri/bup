@@ -84,8 +84,10 @@ def test_bit_array():
     WVPASSEQ((10 in ba), False)
     ba.add(10)
     WVPASSEQ((10 in ba), True)
+    WVPASSEQ(ba.ratio(), 0.1)
     ba.remove(10)
     WVPASSEQ((10 in ba), False)
+    WVPASSEQ(ba.ratio(), 0)
 
 @wvtest
 def test_bin():
