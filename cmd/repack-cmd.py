@@ -104,6 +104,10 @@ try:
     written_object_counter = 0
     for pack in needed_objects.packs:
         ba = needed_objects.get_bitarray_for_pack(pack.name)
+        if abs(ba.ratio() - 1) < 0.000001:
+            if opt.verbose:
+                print "All objects from packfile %s are needed" % pack.name
+            continue
         for offset, sha in pack.hashes_sorted_by_ofs():
             idx = pack._idx_from_hash(sha)
             if idx in ba:
