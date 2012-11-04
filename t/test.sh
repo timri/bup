@@ -718,6 +718,7 @@ if bup fsck --par2-ok; then
 fi
 bup save -n repack "$D"
 bup save -n repack "$D"
+WVPASS bup repack -f
 WVPASSEQ "$(git fsck --unreachable)" ""
 # Force create a midx-file
 bup midx -f
@@ -763,7 +764,8 @@ bup save -n repack-midx --strip "$D"
 WVPASSEQ $(ls "$BUP_DIR/objects/pack" | grep "pack$" | wc -l) "2"
 # ... which have a total of 4 objects
 # (blob + tree + commit in 1st pack, commit only (referencing 1st tree+blob) in second pack)
-WVPASSEQ "$(GIT_DIR=$BUP_DIR git count-objects -v | grep 'in-pack')" "in-pack: 4"
+# if metadata is merged into this, add +1 for metadata-blob
+WVPASSEQ "$(GIT_DIR=$BUP_DIR git count-objects -v | grep 'in-pack')" "in-pack: 5"
 # force a midx, this "hides" the normal idx in repack
 WVPASS bup midx -f
 # Full output of broken repack:
