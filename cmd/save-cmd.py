@@ -378,9 +378,15 @@ for (transname,ent) in r.filter(extra, wantrecurse=wantrecurse_during):
             shalists[-1].append(git_info)
             sort_key = git.shalist_item_sort_key((ent.mode, file, id))
             hlink = find_hardlink_target(hlink_db, ent)
-            metalists[-1].append((sort_key,
+            # an error here is much less probable since we have just read
+            # the file, but there still could be a race condition
+            try:
+                metalists[-1].append((sort_key,
                                   metadata.from_path(ent.name,
                                                      hardlink_target=hlink)))
+            except (OSError, IOError), e:
+                add_error(e)
+                lastskip_name = ent.name
     if exists and wasmissing:
         count += oldsize
         subcount = 0
