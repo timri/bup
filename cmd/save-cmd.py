@@ -293,8 +293,12 @@ for (transname,ent) in r.filter(extra, wantrecurse=wantrecurse_during):
         dir_name, fs_path = dirp[0]
         first_root = dirp[0]
         # Not indexed, so just grab the FS metadata or use empty metadata.
-        meta = metadata.from_path(fs_path) if fs_path else metadata.Metadata()
-        _push(dir_name, meta)
+        try:
+           meta = metadata.from_path(fs_path) if fs_path else metadata.Metadata()
+           _push(dir_name, meta)
+        except (OSError, IOError), e:
+            add_error(e)
+            lastskip_name = dir_name
     elif first_root != dirp[0]:
         root_collision = True
 
@@ -306,8 +310,12 @@ for (transname,ent) in r.filter(extra, wantrecurse=wantrecurse_during):
     for path_component in dirp[len(parts):]:
         dir_name, fs_path = path_component
         # Not indexed, so just grab the FS metadata or use empty metadata.
-        meta = metadata.from_path(fs_path) if fs_path else metadata.Metadata()
-        _push(dir_name, meta)
+        try:
+           meta = metadata.from_path(fs_path) if fs_path else metadata.Metadata()
+           _push(dir_name, meta)
+        except (OSError, IOError), e:
+            add_error(e)
+            lastskip_name = dir_name
 
     if not file:
         if len(parts) == 1:
