@@ -1,4 +1,5 @@
 
+from __future__ import with_statement
 import cPickle, errno, os
 
 class HLinkDB:
