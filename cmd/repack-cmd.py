@@ -3,6 +3,9 @@ import sys, os
 from bup import git, options
 from bup.helpers import *
 
+import pygit2
+from pygit2 import Repository
+
 def run(argv):
     # at least in python 2.5, using "stdout=2" or "stdout=sys.stderr" below
     # doesn't actually work, because subprocess closes fd #2 right before
@@ -14,6 +17,27 @@ def run(argv):
         return p.wait()
     finally:
         os.close(fd)
+
+def traverse_commit(commit, needed_objects):
+    if commit.hex not in needed_objects:
+        needed_objects.add(commit.hex)
+        for sha, type in traverse_tree(commit.tree, needed_objects):
+            yield (sha, type)
+        yield (commit.hex, "commit")
+
+def traverse_tree(tree, needed_objects):
+    if tree.hex not in needed_objects:
+        needed_objects.add(tree.hex)
+        for entry in tree:
+            o = r[entry.oid]
+            if o.type == 2:
+                for sha, type in traverse_tree(o, needed_objects):
+                    yield (sha, type)
+            else:
+                if entry.hex not in needed_objects:
+                    needed_objects.add(entry.hex)
+                    yield(entry.hex, "blob")
+        yield (tree.hex, "tree")
 
 
 optspec = """
@@ -49,6 +73,7 @@ refs = git.list_refs()
 refnames = [name for name, sha in refs]
 
 git.lock()
+r = Repository(git.repo())
 
 try:
     pl = git.PackIdxList(git.repo('objects/pack'))
@@ -64,9 +89,14 @@ try:
         if not refname.startswith('refs/heads/'):
             continue
         log('Traversing %s to find needed objects...\n' % refname[11:])
-        for date, sha in ((date, sha.encode('hex')) for date, sha in
-                          git.rev_list(refname)):
-            for type, sha_ in git.traverse_commit(cp, sha, needed_objects):
+        #for date, sha in ((date, sha.encode('hex')) for date, sha in
+        #                  git.rev_list(refname)):
+        #    for type, sha_ in git.traverse_commit(cp, sha, needed_objects):
+        ref = r.lookup_reference(refname)
+        top_commit = r[ref.oid]
+
+        for commit in r.walk(top_commit.oid, pygit2.GIT_SORT_NONE):
+            for sha, type in traverse_commit(commit, needed_objects):
                 traversed_objects_counter += 1
                 qprogress('Traversing objects (%d/%d)\r' %
                           (traversed_objects_counter, total_objects))
@@ -77,7 +107,8 @@ try:
         for key in tags:
             log('Traversing tag %s to find needed objects...\n' %
                 ", ".join(tags[key]))
-            for type, sha in git.traverse_commit(cp, sha, needed_objects):
+            #for type, sha in git.traverse_commit(cp, sha, needed_objects):
+            for sha, type in traverse_commit(commit, needed_objects):
                 traversed_objects_counter += 1
                 qprogress('Traversing objects (%d/%d)\r' %
                           (traversed_objects_counter, total_objects))
