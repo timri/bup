@@ -806,3 +806,42 @@ WVPASS bup midx -f
 #Traversing objects (6/4), done. Skipped -2
 #Writing new packfiles...
 #Writing objects: 0, done.
+
+# master previously choked on this, fixed with commit 8585613c1f45f3e20feec00b24fc7e3a948fa23e
+# ("Store metadata in the index....")
+WVSTART "save-fail-missing-file"
+D=save-fail-missing-file.tmp
+export BUP_DIR="$TOP/$D/.bup"
+rm -rf $D
+mkdir $D
+bup init
+echo "content" > $D/foo
+echo "content" > $D/bar
+bup index -ux "$D"
+bup save -n save-fail-missing $D
+echo "content" > $D/baz
+bup index -ux "$D"
+rm $D/foo
+WVFAIL bup save -n save-fail-missing $D
+WVPASSEQ "$(bup ls -a save-fail-missing/latest/$TOP/$D/ | grep ^baz)" "baz"
+
+# TODO: Test for racecondition between reading a file and reading its metadata???
+
+# master still choked on this
+WVSTART "save-fail-missing-dir"
+D=save-fail-missing-dir.tmp
+export BUP_DIR="$TOP/$D/.bup"
+rm -rf $D
+mkdir $D
+bup init
+mkdir $D/foo
+mkdir $D/bar
+bup index -ux "$D"
+bup save -n save-fail-missing $D
+touch $D/bar
+mkdir $D/baz
+bup index -ux "$D"
+rmdir $D/foo
+WVFAIL bup save -n save-fail-missing $D
+WVPASSEQ "$(bup ls -a save-fail-missing/latest/$TOP/$D/ | grep ^baz/ )" "baz/"
+
