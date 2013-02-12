@@ -49,9 +49,21 @@ def _dirlist():
     return l
 
 
-def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
-		exclude_if_present=None, exclude_caches=None):
+def _recursive_dirlist(prepend, xdev, bup_dir=None,
+                       excluded_paths=None,
+                       exclude_rxs=None,
+                       exclude_if_present=None,
+                       exclude_caches=None):
     for (name,pst) in _dirlist():
+        if exclude_rxs:
+            exclude = False
+            for rx in exclude_rxs:
+                if rx.search(prepend + name):
+                    debug1('Skipping %r: excluded via rx.\n' % (prepend+name))
+                    exclude = True
+                    break
+            if exclude:
+                continue
         if name.endswith('/'):
             if exclude_if_present != None and os.path.exists(prepend+name+exclude_if_present):
                 debug1('Skipping %r: exclude-file present.\n' % (prepend+name))
@@ -85,6 +97,7 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
                 for i in _recursive_dirlist(prepend=prepend+name, xdev=xdev,
                                             bup_dir=bup_dir,
                                             excluded_paths=excluded_paths,
+                                            exclude_rxs=exclude_rxs,
                                             exclude_if_present=exclude_if_present,
                                             exclude_caches=exclude_caches):
                     yield i
@@ -93,7 +106,9 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None, excluded_paths=None,
 
 
 def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None,
-		exclude_if_present=None,exclude_caches=None):
+                      exclude_rxs=None,
+                      exclude_if_present=None,
+                      exclude_caches=None):
     startdir = OsFile('.')
     try:
         assert(type(paths) != type(''))
@@ -122,6 +137,7 @@ def recursive_dirlist(paths, xdev, bup_dir=None, excluded_paths=None,
                 for i in _recursive_dirlist(prepend=prepend, xdev=xdev,
                                             bup_dir=bup_dir,
                                             excluded_paths=excluded_paths,
+                                            exclude_rxs=exclude_rxs,
                                             exclude_if_present=exclude_if_present,
                                             exclude_caches=exclude_caches):
                     yield i

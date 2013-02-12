@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, stat, time, os
+import sys, stat, time, os, re
 from bup import metadata, options, git, index, drecurse, hlinkdb
 from bup.helpers import *
 from bup.hashsplit import GIT_MODE_TREE, GIT_MODE_FILE
@@ -70,6 +70,7 @@ def update_index(top, excluded_paths):
     for (path,pst) in drecurse.recursive_dirlist([top], xdev=opt.xdev,
                                                  bup_dir=bup_dir,
                                                  excluded_paths=excluded_paths,
+                                                 exclude_rxs=exclude_rxs,
                                                  exclude_if_present=opt['exclude-if-present'],
                                                  exclude_caches=opt.exclude_caches):
         if opt.verbose>=2 or (opt.verbose==1 and stat.S_ISDIR(pst.st_mode)):
@@ -106,7 +107,8 @@ def update_index(top, excluded_paths):
             # in from_stat().
             meta.ctime = meta.mtime = meta.atime = 0
             meta_ofs = msw.store(meta)
-            rig.cur.from_stat(pst, meta_ofs, tstart)
+            rig.cur.from_stat(pst, meta_ofs, tstart,
+                              ignore_dev=opt.ignore_dev)
             if not (rig.cur.flags & index.IX_HASHVALID):
                 if hashgen:
                     (rig.cur.gitmode, rig.cur.sha) = hashgen(path)
@@ -167,11 +169,13 @@ check      carefully check index file integrity
  Options:
 H,hash     print the hash for each object next to its name
 l,long     print more information about each file
+D,ignore-dev  treat objects as up-to-date if they've (only) moved filesystem
 fake-valid mark all index entries as up-to-date even if they aren't
 fake-invalid mark all index entries as invalid
 f,indexfile=  the name of the index file (normally BUP_DIR/bupindex)
 exclude=   a path to exclude from the backup (can be used more than once)
 exclude-from= a file that contains exclude paths (can be used more than once)
+exclude-rx= skip paths that match the unanchored regular expression
 exclude-if-present= exclude directory if the given file is present
 exclude-caches exclude CACHEDIR.TAG-directories
 v,verbose  increase log output (can be used more than once)
@@ -184,15 +188,10 @@ if not (opt.modified or opt['print'] or opt.status or opt.update or opt.check):
     opt.update = 1
 if (opt.fake_valid or opt.fake_invalid) and not opt.update:
     o.fatal('--fake-{in,}valid are meaningless without -u')
+if opt.ignore_dev and not opt.update:
+    o.fatal('--ignore-dev is meaningless without -u')
 if opt.fake_valid and opt.fake_invalid:
     o.fatal('--fake-valid is incompatible with --fake-invalid')
-
-# FIXME: remove this once we account for timestamp races, i.e. index;
-# touch new-file; index.  It's possible for this to happen quickly
-# enough that new-file ends up with the same timestamp as the first
-# index, and then bup will ignore it.
-tick_start = time.time()
-time.sleep(1 - (tick_start - int(tick_start)))
 
 git.check_repo_or_die()
 indexfile = opt.indexfile or git.repo('bupindex')
@@ -204,6 +203,13 @@ if opt.check:
     check_index(index.Reader(indexfile))
 
 excluded_paths = drecurse.parse_excludes(flags)
+
+exclude_rxs = [v for f, v in flags if f == '--exclude-rx']
+for i in range(len(exclude_rxs)):
+    try:
+        exclude_rxs[i] = re.compile(exclude_rxs[i])
+    except re.error:
+        o.fatal('invalid --exclude-rx pattern:' % exclude_rxs[i])
 
 paths = index.reduce_paths(extra)
 
