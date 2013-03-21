@@ -93,7 +93,8 @@ def update_index(top, excluded_paths, exclude_rxs, xdev_exceptions):
                                        bup_dir=bup_dir,
                                        excluded_paths=excluded_paths,
                                        exclude_rxs=exclude_rxs,
-                                       xdev_exceptions=xdev_exceptions):
+                                       xdev_exceptions=xdev_exceptions,
+                                       exclude_if_present=opt['exclude-if-present']):
         if opt.verbose>=2 or (opt.verbose==1 and stat.S_ISDIR(pst.st_mode)):
             sys.stdout.write('%s\n' % path)
             sys.stdout.flush()
@@ -222,6 +223,7 @@ exclude= a path to exclude from the backup (may be repeated)
 exclude-from= skip --exclude paths in file (may be repeated)
 exclude-rx= skip paths matching the unanchored regex (may be repeated)
 exclude-rx-from= skip --exclude-rx patterns in file (may be repeated)
+exclude-if-present= exclude directory if the given file is present
 v,verbose  increase log output (can be used more than once)
 x,xdev,one-file-system  don't cross filesystem boundaries
 """

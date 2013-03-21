@@ -56,7 +56,8 @@ def _dirlist():
 def _recursive_dirlist(prepend, xdev, bup_dir=None,
                        excluded_paths=None,
                        exclude_rxs=None,
-                       xdev_exceptions=frozenset()):
+                       xdev_exceptions=frozenset(),
+                       exclude_if_present=None):
     for (name,pst) in _dirlist():
         path = prepend + name
         if excluded_paths:
@@ -66,6 +67,9 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None,
         if exclude_rxs and should_rx_exclude_path(path, exclude_rxs):
             continue
         if name.endswith('/'):
+            if exclude_if_present != None and os.path.exists(prepend+name+exclude_if_present):
+                debug1('Skipping %r: exclude-file present.\n' % (prepend+name))
+                continue
             if bup_dir != None:
                 if os.path.normpath(path) == bup_dir:
                     debug1('Skipping BUP_DIR.\n')
@@ -83,7 +87,8 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None,
                                                 bup_dir=bup_dir,
                                                 excluded_paths=excluded_paths,
                                                 exclude_rxs=exclude_rxs,
-                                                xdev_exceptions=xdev_exceptions):
+                                                xdev_exceptions=xdev_exceptions,
+                                                exclude_if_present=exclude_if_present):
                         yield i
                     os.chdir('..')
         yield (path, pst)
@@ -92,7 +97,8 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None,
 def recursive_dirlist(paths, xdev, bup_dir=None,
                       excluded_paths=None,
                       exclude_rxs=None,
-                      xdev_exceptions=frozenset()):
+                      xdev_exceptions=frozenset(),
+                      exclude_if_present=None):
     startdir = OsFile('.')
     try:
         assert(type(paths) != type(''))
@@ -122,7 +128,8 @@ def recursive_dirlist(paths, xdev, bup_dir=None,
                                             bup_dir=bup_dir,
                                             excluded_paths=excluded_paths,
                                             exclude_rxs=exclude_rxs,
-                                            xdev_exceptions=xdev_exceptions):
+                                            xdev_exceptions=xdev_exceptions,
+                                            exclude_if_present=exclude_if_present):
                     yield i
                 startdir.fchdir()
             else:
