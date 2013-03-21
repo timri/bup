@@ -11,7 +11,8 @@ bup-index - print and/or update the bup filesystem index
 bup index \<-p|-m|-s|-u|\--clear|\--check\> [-H] [-l] [-x] [\--fake-valid]
 [\--no-check-device] [\--fake-invalid] [-f *indexfile*] [\--exclude *path*]
 [\--exclude-from *filename*] [\--exclude-rx *pattern*]
-[\--exclude-rx-from *filename*] [-v] \<filenames...\>
+[\--exclude-rx-from *filename*] [\--exclude-if-present *filename*]
+[-v] \<filenames...\>
 
 # DESCRIPTION
 
@@ -181,6 +182,11 @@ does, due to the accommodations described above.
 \--exclude-rx-from=*filename*
 :   read --exclude-rx patterns from *filename*, one pattern per-line
     (may be repeated).  Ignore completely empty lines.
+
+\--exclude-if-present=*filename*
+:   exclude all directories that contain the specified file.
+    So you can "touch .do-not-backup-me" to exclude a directory
+    from backup.
 
 \--no-check-device
 :   don't mark a an entry invalid if the device number (stat(2)
