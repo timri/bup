@@ -168,6 +168,7 @@ cmdline_tests := \
   t/test-tz.sh \
   t/test-meta.sh \
   t/test-on.sh \
+  t/test-index-excludes.sh \
   t/test-restore-map-owner.sh \
   t/test-restore-single-file.sh \
   t/test-rm-between-index-and-save.sh \
