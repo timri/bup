@@ -96,7 +96,8 @@ def update_index(top, excluded_paths, exclude_rxs, xdev_exceptions):
                                        excluded_paths=excluded_paths,
                                        exclude_rxs=exclude_rxs,
                                        xdev_exceptions=xdev_exceptions,
-                                       exclude_if_present=opt['exclude-if-present']):
+                                       exclude_if_present=opt['exclude-if-present'],
+                                       exclude_caches=opt.exclude_caches):
         if opt.verbose>=2 or (opt.verbose==1 and stat.S_ISDIR(pst.st_mode)):
             sys.stdout.write('%s\n' % path)
             sys.stdout.flush()
@@ -226,6 +227,7 @@ exclude-from= skip --exclude paths in file (may be repeated)
 exclude-rx= skip paths matching the unanchored regex (may be repeated)
 exclude-rx-from= skip --exclude-rx patterns in file (may be repeated)
 exclude-if-present= exclude directory if the given file is present
+exclude-caches exclude CACHEDIR.TAG-directories
 v,verbose  increase log output (can be used more than once)
 x,xdev,one-file-system  don't cross filesystem boundaries
 """
