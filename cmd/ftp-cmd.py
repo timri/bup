@@ -122,13 +122,20 @@ def completer(text, state):
 
 optspec = """
 bup ftp [commands...]
+--
+commit=       additional commit-id (f.e. from "bup save -c"), can be repeated
 """
+
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 git.check_repo_or_die()
 
 top = vfs.RefList(None)
+commits = parse_commit_parm(flags, o.fatal)
+for c in commits:
+    top.addCommit(c)
+
 pwd = top
 rv = 0
 

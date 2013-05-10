@@ -112,9 +112,10 @@ fuse.fuse_python_api = (0, 2)
 optspec = """
 bup fuse [-d] [-f] <mountpoint>
 --
-d,debug   increase debug level
+d,debug       increase debug level
 f,foreground  run in foreground
 o,allow-other allow other users to access the filesystem
+commit=       additional commit-id (f.e. from "bup save -c"), can be repeated
 """
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -124,6 +125,11 @@ if len(extra) != 1:
 
 git.check_repo_or_die()
 top = vfs.RefList(None)
+
+commits = parse_commit_parm(flags, o.fatal)
+for c in commits:
+    top.addCommit(c)
+
 f = BupFs(top)
 f.fuse_args.mountpoint = extra[0]
 if opt.debug:
