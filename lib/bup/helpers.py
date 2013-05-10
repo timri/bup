@@ -710,6 +710,15 @@ def parse_date_or_fatal(str, fatal):
         return date
 
 
+def parse_commit_parm(options, fatal):
+    commits = []
+    for flag in options:
+        (option, parameter) = flag
+        if option == '--commit':
+            commits.append(parameter)
+    return commits
+
+
 def parse_excludes(options, fatal):
     """Traverse the options and extract all excludes, or call Option.fatal()."""
     excluded_paths = []

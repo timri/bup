@@ -308,6 +308,10 @@ class Node:
             self.parent._populate_metadata()
         return self._metadata
 
+    def metadata_file(self):
+        # Only Dirs contain .bupm files
+        return None
+
 
 class File(Node):
     """A normal file from bup's repository."""

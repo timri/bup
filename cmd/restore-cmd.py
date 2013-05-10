@@ -11,6 +11,7 @@ numeric-ids restore numeric IDs (user, group, etc.) rather than names
 exclude-rx= skip paths that match the unanchored regular expression
 v,verbose   increase log output (can be used more than once)
 q,quiet     don't show progress meter
+commit=     additional commit-id (f.e. from "bup save -c"), can be repeated
 """
 
 total_restored = 0
@@ -237,6 +238,9 @@ o = options.Options(optspec)
 
 git.check_repo_or_die()
 top = vfs.RefList(None)
+commits = parse_commit_parm(flags, o.fatal)
+for c in commits:
+    top.addCommit(c)
 
 if not extra:
     o.fatal('must specify at least one filename to restore')
