@@ -565,6 +565,34 @@ class BranchList(Node):
         self._subs['latest'] = n1
 
 
+class UnreferencedList(Node):
+    """A list of links to commits added by the addCommit-method.
+
+    This mimicks the BranchList-class by creating a 'unreferenced'-pseudo-branch
+    with those commits, which were added by addCommit.
+    Represents each commit as a symlink that points to the commit directory in
+    /.commit/??/ . The symlink is named after the commit date.
+    """
+    def __init__(self, parent, name):
+        Node.__init__(self, parent, name, GIT_MODE_TREE, EMPTY_SHA)
+
+    def _mksubs(self):
+        self._subs = {}
+
+    def add(self, sha):
+        if self._subs == None:
+            self._mksubs()
+        revs = list(git.rev_list(sha))
+        for (date, commit) in revs:
+            l = time.localtime(date)
+            ls = time.strftime('%Y-%m-%d-%H%M%S', l)
+            commithex = commit.encode('hex')
+            target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
+            n1 = FakeSymlink(self, ls, target)
+            n1.ctime = n1.mtime = date
+            self._subs[ls] = n1
+
+
 class RefList(Node):
     """A list of branches in bup's repository.
 
@@ -600,3 +628,10 @@ class RefList(Node):
         if self._subs == None:
             self._mksubs()
         self.sub('.commit').add(hash)
+        unref_dir_name = 'unreferenced'
+        try:
+            unref_dir = self.sub(unref_dir_name)
+        except NoSuchFile:
+            unref_dir = UnreferencedList(self, unref_dir_name)
+            self._subs[unref_dir_name] = unref_dir
+        unref_dir.add(hash)
