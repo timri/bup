@@ -454,6 +454,8 @@ class CommitDir(Node):
     subdirectories is the hash of the commit without the first byte. This
     separation helps us avoid having too much directories on the same level as
     the number of commits grows big.
+    By default, all commits reachable by a ref are added to this directory,
+    however unreferenced commits may be added with the add-method.
     """
     def __init__(self, parent, name):
         Node.__init__(self, parent, name, GIT_MODE_TREE, EMPTY_SHA)
@@ -463,7 +465,11 @@ class CommitDir(Node):
         refs = git.list_refs()
         for ref in refs:
             #debug2('ref name: %s\n' % ref[0])
-            revs = git.rev_list(ref[1].encode('hex'))
+            self._add(ref[1].encode('hex'))
+
+    def _add(self, sha):
+            #debug2('add commit: %s\n' % sha)
+            revs = git.rev_list(sha)
             for (date, commit) in revs:
                 #debug2('commit: %s  date: %s\n' % (commit.encode('hex'), date))
                 commithex = commit.encode('hex')
@@ -480,6 +486,10 @@ class CommitDir(Node):
 
                 n1.commits[dirname] = (commit, date)
 
+    def add(self, sha):
+        if self._subs == None:
+            self._mksubs()
+        self._add(sha)
 
 class CommitList(Node):
     """A list of commits with hashes that start with the current node's name."""
@@ -559,6 +569,8 @@ class RefList(Node):
 
     Also, a special sub-node named '.commit' contains all commit directories
     that are reachable via a ref (e.g. a branch).  See CommitDir for details.
+    (You may add additional commits (ie. those created by 'bup save -c') using
+    the method addCommit)
     """
     def __init__(self, parent):
         Node.__init__(self, parent, '/', GIT_MODE_TREE, EMPTY_SHA)
@@ -579,3 +591,8 @@ class RefList(Node):
                 n1 = BranchList(self, name, sha)
                 n1.ctime = n1.mtime = date
                 self._subs[name] = n1
+
+    def addCommit(self, hash):
+        if self._subs == None:
+            self._mksubs()
+        self.sub('.commit').add(hash)
