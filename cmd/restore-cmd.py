@@ -2,15 +2,18 @@
 import errno, sys, stat, re
 from bup import options, git, metadata, vfs
 from bup.helpers import *
+from bup.hashsplit import GIT_MODE_TREE
 
 optspec = """
 bup restore [-C outdir] </branch/revision/path/to/dir ...>
+bup restore --vfs-root <sha1> [-C outdir] <path/to/dir ...>
 --
 C,outdir=   change to given outdir before extracting files
 numeric-ids restore numeric IDs (user, group, etc.) rather than names
 exclude-rx= skip paths that match the unanchored regular expression
 v,verbose   increase log output (can be used more than once)
 q,quiet     don't show progress meter
+vfs-root=   start the VFS on a different object, could be a commit-id (f.e. from "bup save -c") or a tree-id (f.e. from "bup save -t" or "bup ls -s")
 """
 
 total_restored = 0
@@ -236,7 +239,10 @@ o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 git.check_repo_or_die()
-top = vfs.RefList(None)
+if opt.vfs_root:
+    top = vfs.Dir(None, opt.vfs_root, GIT_MODE_TREE, opt.vfs_root.decode('hex'))
+else:
+    top = vfs.RefList(None)
 
 if not extra:
     o.fatal('must specify at least one filename to restore')
@@ -249,7 +255,7 @@ if opt.outdir:
 
 ret = 0
 for d in extra:
-    if not valid_restore_path(d):
+    if not opt.vfs_root and not valid_restore_path(d):
         add_error("ERROR: path %r doesn't include a branch and revision" % d)
         continue
     path,name = os.path.split(d)
