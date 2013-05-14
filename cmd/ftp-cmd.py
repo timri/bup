@@ -2,6 +2,7 @@
 import sys, os, stat, fnmatch
 from bup import options, git, shquote, vfs, ls
 from bup.helpers import *
+from bup.hashsplit import GIT_MODE_TREE
 
 handle_ctrl_c()
 
@@ -122,13 +123,18 @@ def completer(text, state):
 
 optspec = """
 bup ftp [commands...]
+--
+vfs-root=   start the VFS on a different object, could be a commit-id (f.e. from "bup save -c") or
 """
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 git.check_repo_or_die()
 
-top = vfs.RefList(None)
+if opt.vfs_root:
+    top = vfs.Dir(None, opt.vfs_root, GIT_MODE_TREE, opt.vfs_root.decode('hex'))
+else:
+    top = vfs.RefList(None)
 pwd = top
 rv = 0
 

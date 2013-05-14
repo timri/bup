@@ -2,6 +2,7 @@
 import sys, os, errno
 from bup import options, git, vfs
 from bup.helpers import *
+from bup.hashsplit import GIT_MODE_TREE
 try:
     import fuse
 except ImportError:
@@ -115,6 +116,7 @@ bup fuse [-d] [-f] <mountpoint>
 d,debug   increase debug level
 f,foreground  run in foreground
 o,allow-other allow other users to access the filesystem
+vfs-root=   start the VFS on a different object, could be a commit-id (f.e. from "bup save -c") or
 """
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -123,7 +125,10 @@ if len(extra) != 1:
     o.fatal("exactly one argument expected")
 
 git.check_repo_or_die()
-top = vfs.RefList(None)
+if opt.vfs_root:
+    top = vfs.Dir(None, opt.vfs_root, GIT_MODE_TREE, opt.vfs_root.decode('hex'))
+else:
+    top = vfs.RefList(None)
 f = BupFs(top)
 f.fuse_args.mountpoint = extra[0]
 if opt.debug:
