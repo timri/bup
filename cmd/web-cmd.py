@@ -3,6 +3,7 @@ import sys, stat, urllib, mimetypes, posixpath, time, webbrowser
 import urllib
 from bup import options, git, vfs
 from bup.helpers import *
+from bup.hashsplit import GIT_MODE_TREE
 try:
     import tornado.httpserver
     import tornado.ioloop
@@ -189,6 +190,7 @@ bup web [[hostname]:port]
 --
 human-readable    display human readable file sizes (i.e. 3.9K, 4.7M)
 browser           open the site in the default browser
+vfs-root=   start the VFS on a different object, could be a commit-id (f.e. from "bup save -c") or a tree-id (f.e. from "bup save -t" or "bup ls -s")
 """
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -203,7 +205,15 @@ if len(extra) > 0:
     address = tuple(addressl)
 
 git.check_repo_or_die()
-top = vfs.RefList(None)
+
+if opt.vfs_root:
+    # opt.vfs_root might be an integer
+    commitid = git.rev_parse('%s' % opt.vfs_root)
+    if not commitid:
+        o.fatal("commit '%s' could not be found" % opt.vfs_root)
+    top = vfs.Dir(None, opt.vfs_root, GIT_MODE_TREE, commitid)
+else:
+    top = vfs.RefList(None)
 
 settings = dict(
     debug = 1,
