@@ -8,9 +8,9 @@ bup-split - save individual files to bup backup sets
 
 # SYNOPSIS
 
-bup split \[-t\] \[-c\] \[-n *name*\] COMMON\_OPTIONS
+bup split \[--tree\] \[--commit\] \[-n *name*\] COMMON\_OPTIONS
 
-bup split -b COMMON\_OPTIONS
+bup split --blobs COMMON\_OPTIONS
 
 bup split \<--noop \[--copy\]|--copy\> COMMON\_OPTIONS
 
@@ -64,13 +64,13 @@ being the most likely choice.
     will also be available as a top-level file named "data" in the VFS,
     accessible via `bup fuse`, `bup ftp`, etc.
 
--t, \--tree
+\--tree
 :   output the git tree id of the resulting dataset.
 
--c, \--commit
+\--commit
 :   output the git commit id of the resulting dataset.
 
--b, \--blobs
+\--blobs
 :   output a series of git blob ids that correspond to the chunks in
     the dataset.  Incompatible with -n, -t, and -c.
 

@@ -5,14 +5,14 @@ from bup.helpers import *
 
 
 optspec = """
-bup split [-t] [-c] [-n name] OPTIONS [--git-ids | filenames...]
-bup split -b OPTIONS [--git-ids | filenames...]
+bup split [--tree] [--commit] [-n name] OPTIONS [--git-ids | filenames...]
+bup split --blobs OPTIONS [--git-ids | filenames...]
 bup split <--noop [--copy]|--copy>  OPTIONS [--git-ids | filenames...]
 --
  Modes:
-b,blobs    output a series of blob ids.  Implies --fanout=0.
-t,tree     output a tree id
-c,commit   output a commit id
+blobs      output a series of blob ids.  Implies --fanout=0.
+tree       output a tree id
+commit     output a commit id
 n,name=    save the result under the given name
 noop       split the input, but throw away the result
 copy       split the input, copy it to stdout, don't save to repo
@@ -37,7 +37,7 @@ handle_ctrl_c()
 git.check_repo_or_die()
 if not (opt.blobs or opt.tree or opt.commit or opt.name or
         opt.noop or opt.copy):
-    o.fatal("use one or more of -b, -t, -c, -n, --noop, --copy")
+    o.fatal("use one or more of --blobs, --tree, --commit, -n, --noop, --copy")
 if (opt.noop or opt.copy) and (opt.blobs or opt.tree or
                                opt.commit or opt.name):
     o.fatal('--noop and --copy are incompatible with -b, -t, -c, -n')
