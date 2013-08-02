@@ -833,6 +833,18 @@ def init_repo(path=None):
     p = subprocess.Popen(['git', '--bare', 'init'], stdout=sys.stderr,
                          preexec_fn = _gitenv)
     _git_wait('git init', p)
+
+    # ensure that a reflog-logsdir for "our" catgory exists
+    # otherwise, "git update-ref" does not log updates
+    # (by default only for heads, notes & remotes)
+    logsdir = repo(os.path.join('logs', 'refs', 'bup'))
+    if not os.path.exists(logsdir):
+        os.makedirs(logsdir)
+    if not os.path.exists(os.path.join(logsdir, 'latest-commit')):
+        open(os.path.join(logsdir, 'latest-commit'), 'w').close()
+    if not os.path.exists(os.path.join(logsdir, 'latest-tree')):
+        open(os.path.join(logsdir, 'latest-tree'), 'w').close()
+
     # Force the index version configuration in order to ensure bup works
     # regardless of the version of the installed Git binary.
     p = subprocess.Popen(['git', 'config', 'pack.indexVersion', '2'],
