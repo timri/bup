@@ -9,11 +9,11 @@ from bup.hashsplit import GIT_MODE_TREE, GIT_MODE_FILE, GIT_MODE_SYMLINK
 
 
 optspec = """
-bup save [-tc] [-n name] <filenames...>
+bup save [--tree] [--commit] [-n name] <filenames...>
 --
 r,remote=  hostname:/path/to/repo of remote repository
-t,tree     output a tree id
-c,commit   output a commit id
+tree       output a tree id
+commit     output a commit id
 n,name=    name of backup set to update (if any)
 d,date=    date for the commit (seconds since the epoch)
 v,verbose  increase log output (can be used more than once)

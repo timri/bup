@@ -8,7 +8,7 @@ bup-save - create a new bup backup set
 
 # SYNOPSIS
 
-bup save [-r *host*:*path*] \<-t|-c|-n *name*\> [-#] [-f *indexfile*]
+bup save [-r *host*:*path*] \<\--tree|\--commit|-n *name*\> [-#] [-f *indexfile*]
 [-v] [-q] [\--smaller=*maxsize*] \<paths...\>;
 
 # DESCRIPTION
@@ -42,11 +42,11 @@ handling of metadata.
     or private key to use for the SSH connection, we recommend you use the
     `~/.ssh/config` file.
 
--t, \--tree
+\--tree
 :   after creating the backup set, print out the git tree
     id of the resulting backup.
-    
--c, \--commit
+
+\--commit
 :   after creating the backup set, print out the git commit
     id of the resulting backup.
 
