@@ -430,6 +430,18 @@ if opt.commit or opt.name:
 msr.close()
 w.close()  # must close before we can update the ref
         
+if cli:
+    cli.update_ref_force('refs/bup/latest-tree', tree)
+else:
+    git.update_ref_force('refs/bup/latest-tree', tree)
+
+if opt.commit or opt.name:
+    if cli:
+        cli.update_ref_force('refs/bup/latest-commit', commit)
+    else:
+        git.update_ref_force('refs/bup/latest-commit', commit)
+
+
 if opt.name:
     if cli:
         cli.update_ref(refname, commit, oldref)
