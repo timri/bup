@@ -805,6 +805,15 @@ def update_ref(refname, newval, oldval):
     _git_wait('git update-ref', p)
 
 
+def update_ref_force(refname, newval):
+    """Change the commit pointed to by a branch, without validating the old value."""
+    assert(refname.startswith('refs/'))
+    p = subprocess.Popen(['git', 'update-ref', refname,
+                          newval.encode('hex')],
+                         preexec_fn = _gitenv)
+    _git_wait('git update-ref', p)
+
+
 def guess_repo(path=None):
     """Set the path value in the global variable "repodir".
     This makes bup look for an existing bup repository, but not fail if a

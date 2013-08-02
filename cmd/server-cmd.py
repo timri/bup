@@ -142,6 +142,12 @@ def update_ref(conn, refname):
     git.update_ref(refname, newval.decode('hex'), oldval.decode('hex'))
     conn.ok()
 
+def update_ref_force(conn, refname):
+    _init_session()
+    newval = conn.readline().strip()
+    git.update_ref_force(refname, newval.decode('hex'))
+    conn.ok()
+
 
 cat_pipe = None
 def cat(conn, id):
@@ -183,6 +189,7 @@ commands = {
     'receive-objects-v2': receive_objects_v2,
     'read-ref': read_ref,
     'update-ref': update_ref,
+    'update-ref-force': update_ref_force,
     'cat': cat,
 }
 

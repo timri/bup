@@ -268,6 +268,12 @@ class Client:
                            (oldval or '').encode('hex')))
         self.check_ok()
 
+    def update_ref_force(self, refname, newval):
+        self.check_busy()
+        self.conn.write('update-ref-force %s\n%s\n' 
+                        % (refname, newval.encode('hex')))
+        self.check_ok()
+
     def cat(self, id):
         self.check_busy()
         self._busy = 'cat'
