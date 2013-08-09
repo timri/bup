@@ -91,6 +91,7 @@ runtests-cmdline: all
 	t/test-restore-single-file.sh
 	t/test-rm-between-index-and-save.sh
 	t/test.sh
+	t/test-unreferenced-metadata-object.sh
 
 stupid:
 	PATH=/bin:/usr/bin $(MAKE) test
