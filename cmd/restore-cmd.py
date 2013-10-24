@@ -46,6 +46,12 @@ def valid_restore_path(path):
     path = os.path.normpath(path)
     if path.startswith('/'):
         path = path[1:]
+    global top
+    node = top.lresolve(path)
+    if isinstance(node, vfs.BranchDir):
+	return False
+    if isinstance(node, vfs.BranchList):
+	return False
     if '/' in path:
         return True
 
