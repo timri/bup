@@ -9,15 +9,26 @@ class NbdServer(SocketServer.TCPServer):
     """
 
     def __init__(self, roots, host = '127.0.0.1', port = 10809):
+        """
+        roots is a dict containing name => vfs.File mappings
+        host and port are pretty self explaining
+        
+        this server currently allows only one connection at a time
+        to support multiple concurrent connections, its possible to
+        inherit from ThreadingTCPServer or ForkingTCPServer
+        """
         SocketServer.TCPServer.__init__(self, (host, port), NbdTCPHandler)
         self.roots = roots
 
 class NbdTCPHandler(SocketServer.StreamRequestHandler):
     """
-    Handles a connection to a nbd-client
+    Handles a connection from a nbd-client (new-style)
+    This class is instantiated once for each connection
+    and lives for the whole connection
+    (once handle returns the server closes the socket)
     """
 
-    # NBD's magic
+    # NBD's magic (IHAVEOPT)
     NBD_HANDSHAKE = 0x49484156454F5054
     NBD_REPLY = 0x3e889045565a9
 
@@ -51,6 +62,7 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
         fob.flush()
 
     def handle(self):
+        """ handle the connection """
         host, port = self.client_address
         root, node = None, None
         filereader = None
@@ -96,7 +108,7 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
                 debug1("[%s:%s]: opt=%s, len=%s, data=%s\n" % (host, port, opt, length, data))
 
                 if opt == self.NBD_OPT_EXPORTNAME:
-
+                    """ client requests a specific export """
                     if not data:
                         raise IOError("Negotiation failed: no export name was provided")
 
@@ -108,7 +120,7 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
                         self.wfile.flush()
                         continue
 
-                    # we have negotiated a store and it will be used
+                    # we have negotiated a file and it will be used
                     # until the client disconnects
                     root = data
                     node = self.server.roots[data]
@@ -116,13 +128,15 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
                     filereader = node.open()
                     export_flags = self.NBD_EXPORT_FLAGS
 #                    if store.read_only:
+                    # bup-repositories are always read-only
                     export_flags ^= self.NBD_RO_FLAG
                     self.wfile.write(struct.pack('>QH', filereader.size, export_flags) + "\x00"*124)
                     self.wfile.flush()
+                    # break out of negotiation
                     break
 
                 elif opt == self.NBD_OPT_LIST:
-
+                    """ client requests list of exports """
                     for container in self.server.roots.keys():
                         self.wfile.write(struct.pack(">QLLL", self.NBD_REPLY, opt, self.NBD_REP_SERVER, len(container) + 4))
                         self.wfile.write(struct.pack(">L", len(container)) + container)
@@ -132,7 +146,7 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
                     self.wfile.flush()
 
                 elif opt == self.NBD_OPT_ABORT:
-
+                    """ client wants to abort the connection """
                     self.wfile.write(struct.pack(">QLLL", self.NBD_REPLY, opt, self.NBD_REP_ACK, 0))
                     self.wfile.flush()
 
@@ -163,10 +177,10 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
                     log("[%s:%s] disconnecting\n" % self.client_address)
                     break
                 elif cmd == self.NBD_CMD_WRITE:
+                    # or silently ignore them?
                     raise IOError("writing is not supported")
                 
                 elif cmd == self.NBD_CMD_READ:
-
                     try:
                         filereader.seek(offset)
                         data = filereader.read(length)
@@ -189,4 +203,4 @@ class NbdTCPHandler(SocketServer.StreamRequestHandler):
 
         except IOError as ex:
             log("[%s:%s] %s\n" % (host, port, ex))
-        log("exiting\n")
+        log("exiting client task\n")
