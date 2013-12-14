@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, errno
+import sys, os, errno, time
 from bup import options, git, vfs, xstat
 from bup.helpers import *
 try:
@@ -27,7 +27,17 @@ class Stat(fuse.Stat):
 
 
 cache = {}
+tmp_cache = {}
+tmp_cache_time = time.time()
 def cache_get(top, path):
+    global tmp_cache_time
+    now = time.time()
+    if (now - 60) > tmp_cache_time:
+        tmp_cache.clear()
+        tmp_cache_time = now
+    if tmp_cache_time > now:
+        tmp_cache_time = now
+
     parts = path.split('/')
     cache[('',)] = top
     c = None
@@ -36,7 +46,10 @@ def cache_get(top, path):
     for i in range(max):
         pre = parts[:max-i]
         log('cache trying: %r\n' % pre)
-        c = cache.get(tuple(pre))
+        if tuple(pre) in cache:
+            c = cache[tuple(pre)]
+        elif tuple(pre) in tmp_cache:
+            c = tmp_cache[tuple(pre)]
         if c:
             rest = parts[max-i:]
             key = pre
@@ -49,6 +62,8 @@ def cache_get(top, path):
                     #import ipdb
                     #ipdb.set_trace()
                     cache[tuple(key)] = c
+                else:
+                    tmp_cache[tuple(key)] = c
             break
     assert(c)
     return c
