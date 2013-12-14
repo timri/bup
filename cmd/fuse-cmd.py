@@ -39,15 +39,16 @@ def cache_get(top, path):
         c = cache.get(tuple(pre))
         if c:
             rest = parts[max-i:]
+            key = pre
             for r in rest:
                 log('resolving %r from %r\n' % (r, c.fullname()))
                 c = c.lresolve(r)
-                key = tuple(pre + [r])
+                key = key + [r]
                 log('saving: %r\n' % (key,))
                 if i > 3:  # magic number!
                     #import ipdb
                     #ipdb.set_trace()
-                    cache[key] = c
+                    cache[tuple(key)] = c
             break
     assert(c)
     return c
