@@ -648,13 +648,17 @@ class PackWriter:
         self._require_objcache()
         return self.objcache.exists(id, want_source=want_source)
 
+    def write(self, sha, type, content):
+        """Write an object to the pack file.  Fails if sha exists()."""
+        self._write(sha, type, content)
+        self._require_objcache()
+        self.objcache.add(sha)
+
     def maybe_write(self, type, content):
         """Write an object to the pack file if not present and return its id."""
         sha = calc_hash(type, content)
         if not self.exists(sha):
-            self._write(sha, type, content)
-            self._require_objcache()
-            self.objcache.add(sha)
+            self.write(sha, type, content)
         return sha
 
     def new_blob(self, blob):
