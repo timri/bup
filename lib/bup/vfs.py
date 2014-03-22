@@ -4,6 +4,7 @@ The vfs.py library makes it possible to expose contents from bup's repository
 and abstracts internal name mangling and storage from the exposition layer.
 """
 import os, re, stat, time
+from itertools import chain, izip, tee
 from bup import git, metadata
 from helpers import *
 from bup.git import BUP_NORMAL, BUP_CHUNKED, cp
@@ -478,8 +479,14 @@ class CommitDir(Node):
 
     def _mksubs(self):
         self._subs = {}
-        refs = git.list_refs(repo_dir = self._repo_dir)
-        for ref in refs:
+        heads = git.list_refs(repo_dir=self._repo_dir, limit_to_heads=True)
+        tags = git.list_refs(repo_dir=self._repo_dir, limit_to_tags=True)
+        tags, tags_dup = tee(tags)
+        tags_info = git.object_info((x[1].encode('hex') for x in tags_dup),
+                                    repo_dir=self._repo_dir)
+        commit_tags = (ref for ref, info in izip(tags, tags_info)
+                       if info[1] == 'commit')
+        for ref in sorted(chain(heads, commit_tags)):
             #debug2('ref name: %s\n' % ref[0])
             revs = git.rev_list(ref[1].encode('hex'), repo_dir = self._repo_dir)
             for (date, commit) in revs:
@@ -513,6 +520,10 @@ class CommitList(Node):
             self._subs[name] = n1
 
 
+class CommitLink(FakeSymlink):
+    """Symlink to a commit; commit tags (.tag/commit) are CommitLinks."""
+
+
 class TagDir(Node):
     """A directory that contains all tags in the repository."""
     def __init__(self, parent, name, repo_dir = None):
@@ -520,16 +531,34 @@ class TagDir(Node):
 
     def _mksubs(self):
         self._subs = {}
-        for (name, sha) in git.list_refs(repo_dir = self._repo_dir):
-            if name.startswith('refs/tags/'):
-                name = name[10:]
+        tags = git.list_refs(repo_dir=self._repo_dir, limit_to_tags=True)
+        tags, tags_dup = tee(tags)
+        tags_info = git.object_info((x[1].encode('hex') for x in tags_dup),
+                                    repo_dir=self._repo_dir)
+        for (name, sha), info in izip(tags, tags_info):
+            assert(name.startswith('refs/tags/'))
+            name = name[10:]
+            commithex = sha.encode('hex')
+            type = info[1]
+            if type == 'commit':
+                # FIXME: handle this in bulk.
                 date = git.get_commit_dates([sha.encode('hex')],
                                             repo_dir=self._repo_dir)[0]
-                commithex = sha.encode('hex')
                 target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
-                tag1 = FakeSymlink(self, name, target, self._repo_dir)
+                tag1 = CommitLink(self, name, target, repo_dir=self._repo_dir)
                 tag1.ctime = tag1.mtime = date
-                self._subs[name] = tag1
+            elif type == 'tree':
+                tag1 = Dir(self, name, GIT_MODE_TREE, sha, repo_dir=self._repo_dir)
+            elif type == 'blob':
+                tag1 = File(self, name, GIT_MODE_FILE, sha, git.BUP_NORMAL,
+                            repo_dir=self._repo_dir)
+            else:
+                assert(False)
+            self._subs[name] = tag1
+
+
+class BranchCommitLink(CommitLink):
+    """Symlink to a branch commit; represents a VFS save or split."""
 
 
 class BranchList(Node):
@@ -552,14 +581,14 @@ class BranchList(Node):
             ls = time.strftime('%Y-%m-%d-%H%M%S', l)
             commithex = commit.encode('hex')
             target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
-            n1 = FakeSymlink(self, ls, target, self._repo_dir)
+            n1 = BranchCommitLink(self, ls, target, self._repo_dir)
             n1.ctime = n1.mtime = date
             self._subs[ls] = n1
 
         (date, commit) = latest
         commithex = commit.encode('hex')
         target = '../.commit/%s/%s' % (commithex[:2], commithex[2:])
-        n1 = FakeSymlink(self, 'latest', target, self._repo_dir)
+        n1 = BranchCommitLink(self, 'latest', target, self._repo_dir)
         n1.ctime = n1.mtime = date
         self._subs['latest'] = n1
 
@@ -586,7 +615,8 @@ class RefList(Node):
         self._subs['.tag'] = tag_dir
 
         refs_info = [(name[11:], sha) for (name,sha)
-                     in git.list_refs(repo_dir=self._repo_dir)
+                     in git.list_refs(repo_dir=self._repo_dir,
+                                      limit_to_heads=True)
                      if name.startswith('refs/heads/')]
         dates = git.get_commit_dates([sha.encode('hex')
                                       for (name, sha) in refs_info],
