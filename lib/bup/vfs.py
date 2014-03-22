@@ -625,3 +625,43 @@ class RefList(Node):
             n1 = BranchList(self, name, sha, self._repo_dir)
             n1.ctime = n1.mtime = date
             self._subs[name] = n1
+
+
+def path_info(paths, vfs_top):
+    """Return a list of (path, hash, type) or None values for each VFS
+    item in paths.  Type will be 'root', 'branch', 'save', 'commit',
+    'dir', 'chunked-file', or 'file'.
+
+    """
+    result = []
+    for path in paths:
+        try:
+            node = vfs_top.lresolve(path)
+        except NodeError, ex:
+            result.append(None)
+            continue
+        id = node.hash
+        if isinstance(node, RefList):
+            type = 'root'
+        elif isinstance(node, BranchList):
+            type = 'branch'
+        elif isinstance(node, BranchCommitLink):
+            type = 'save'
+            id = node.dereference().hash
+        elif isinstance(node, CommitLink):
+            type = 'commit'
+            id = node.dereference().hash
+        elif isinstance(node, Dir):
+            type = 'dir'
+        elif isinstance(node, File):
+            if node.bupmode == git.BUP_CHUNKED:
+                type = 'chunked-file'
+            else:
+                type = 'file'
+        else:
+            assert(False)
+        npath = os.path.normpath(path)
+        if not npath.startswith('/'):
+            npath = '/' + npath
+        result.append((npath, id, type))
+    return result
