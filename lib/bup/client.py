@@ -1,7 +1,8 @@
 
 import errno, os, re, struct, sys, time, zlib
 
-from bup import git, ssh
+from bup import git, ssh, vint
+
 from bup.helpers import (Conn, atomically_replaced_file, chunkyreader, debug1,
                          debug2, linereader, mkdirp, progress, qprogress)
 
@@ -261,6 +262,24 @@ class Client:
             return r.decode('hex')
         else:
             return None   # nonexistent ref
+
+    def path_info(self, paths):
+        self.check_busy()
+        self.conn.write('path-info\n')
+        if not isinstance(paths, list):  # FIXME: check for "not oneshot".
+            paths = list(paths)
+        vint.write_vuint(self.conn, len(paths))
+        for path in paths:
+            vint.write_bvec(self.conn, path)
+        result = []
+        for path in paths:
+            data = vint.read_bvec(self.conn)
+            if data:
+                result.append(vint.unpack('sss', data))
+            else:
+                result.append(None)
+        self.check_ok()
+        return result
 
     def update_ref(self, refname, newval, oldval):
         self.check_busy()
