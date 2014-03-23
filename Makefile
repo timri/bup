@@ -143,6 +143,7 @@ cmdline_tests := \
   t/test-index.sh \
   t/test-split-join.sh \
   t/test-fuse.sh \
+  t/test-get.sh \
   t/test-drecurse.sh \
   t/test-cat-file.sh \
   t/test-compression.sh \
@@ -187,6 +188,12 @@ test: all
 	./wvtest report t/tmp/test-log/*.log
 
 check: test
+
+long-test: export BUP_TEST_LEVEL=11
+long-test: test
+
+long-check: export BUP_TEST_LEVEL=11
+long-check: check
 
 cmd/python-cmd.sh: config/config.vars Makefile
 	printf "#!/bin/sh\nexec %q \"\$$@\"" "$(bup_python)" \
