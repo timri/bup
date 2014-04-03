@@ -7,7 +7,7 @@ from wvtest import *
 
 top_dir = os.path.realpath('../../..')
 bup_exe = top_dir + '/bup'
-bup_tmp = top_dir + '/t/tmp'
+bup_tmp = os.path.realpath(top_dir + '/t/tmp')
 
 
 def exc(*cmd):
@@ -20,6 +20,8 @@ def exo(*cmd):
     cmd_str = ' '.join(cmd)
     print >> sys.stderr, cmd_str
     return readpipe(cmd)
+
+mkdirp(bup_tmp)
 
 
 @wvtest
