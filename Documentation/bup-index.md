@@ -11,7 +11,7 @@ bup-index - print and/or update the bup filesystem index
 bup index \<-p|-m|-s|-u|\--clear|\--check\> [-H] [-l] [-x] [\--fake-valid]
 [\--no-check-device] [\--fake-invalid] [-f *indexfile*] [\--exclude *path*]
 [\--exclude-from *filename*] [\--exclude-rx *pattern*]
-[\--exclude-rx-from *filename*] [-v] \<paths...\>
+[\--exclude-rx-from *filename*] [\--exclude-caches] [-v] \<paths...\>
 
 # DESCRIPTION
 
@@ -182,6 +182,13 @@ does, due to the accommodations described above.
 \--exclude-rx-from=*filename*
 :   read --exclude-rx patterns from *filename*, one pattern per-line
     (may be repeated).  Ignore completely empty lines.
+
+
+\--exclude-caches
+:   exclude all directories that contain a file CACHEDIR.TAG, whose
+    content begins with "Signature: 8a477f597d28d172789f06886806bc55".
+    For more information on cachedir-tagging, see
+    http://www.brynosaurus.com/cachedir/
 
 \--no-check-device
 :   don't mark an entry invalid if the device number (stat(2) st_dev)
