@@ -141,6 +141,7 @@ runtests-python: all t/tmp
 
 cmdline_tests := \
   t/test-rm.sh \
+  t/test-gc.sh \
   t/test-index.sh \
   t/test-split-join.sh \
   t/test-fuse.sh \
