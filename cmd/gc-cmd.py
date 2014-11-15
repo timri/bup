@@ -17,7 +17,7 @@ class Nonlocal:
     pass
 
 gc_start = time.time()
-
+trees = set()
 # FIXME: unify with the walk_object() version in bup-get
 def walk_object(cat_pipe, id, verbose=None, parent_path=[],
                 stop_at=None,
@@ -54,6 +54,9 @@ def walk_object(cat_pipe, id, verbose=None, parent_path=[],
                 yield x
     elif type == 'tree':
         data = ''.join(item_it)
+        if id.decode('hex') in trees:
+             return
+        trees.add(id.decode('hex'))
         yield include_data and (id, type, data) or (id, type)
         for (mode, name, ent_id) in git.tree_decode(data):
             if not verbose > 1:
