@@ -36,11 +36,14 @@ WVSTART "exclude-caches"
     WVPASS touch $D/a
     WVPASS bup random 128k >$D/b
     WVPASS mkdir $D/d $D/d/e
+    WVPASS touch $D/d/file
     WVPASS bup random 512 >$D/f
     WVPASS echo 'Signature: 8a477f597d28d172789f06886806bc55' > $D/d/CACHEDIR.TAG
     WVPASS bup index -ux --exclude-caches $D
     WVPASS bup save -n exclude $D
     WVPASSEQ "$(bup ls exclude/latest/$TOP/$D/)" "a
 b
+d
 f"
+    WVPASSEQ "$(bup ls exclude/latest/$TOP/$D/d/)" "CACHEDIR.TAG"
 ) || WVFAIL
