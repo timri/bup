@@ -859,28 +859,21 @@ def get_commit_dates(refs, repo_dir=None):
 def rev_parse(committish, repo_dir=None):
     """Resolve the full hash for 'committish', if it exists.
 
-    Should be roughly equivalent to 'git rev-parse'.
+    Actually calls 'git rev-parse'.
 
     Returns the hex value of the hash if it is found, None if 'committish' does
     not correspond to anything.
     """
-    head = read_ref(committish, repo_dir=repo_dir)
-    if head:
-        debug2("resolved from ref: commit = %s\n" % head.encode('hex'))
-        return head
-
-    pL = PackIdxList(repo('objects/pack', repo_dir=repo_dir))
-
-    if len(committish) == 40:
-        try:
-            hash = committish.decode('hex')
-        except TypeError:
-            return None
-
-        if pL.exists(hash):
-            return hash
-
-    return None
+    debug2("resolving ref: '%s'\n" % committish)
+    argv = ['git', 'rev-parse', '--verify', committish]
+    p = subprocess.Popen(argv, preexec_fn = _gitenv(repo_dir), stdout = subprocess.PIPE, stderr = open('/dev/null', 'w'))
+    commit = None
+    for row in p.stdout:
+        commit = row.strip().decode('hex')
+    rv = p.wait()  # not fatal
+    if commit:
+        debug2("resolved from ref: commit = %s\n" % commit.encode('hex'))
+    return commit
 
 
 def update_ref(refname, newval, oldval, repo_dir=None):
