@@ -71,8 +71,10 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None,
                 tag_contents = 'Signature: 8a477f597d28d172789f06886806bc55'
                 if os.path.exists(prepend+name+tag_filename):
                     f = open(prepend+name+tag_filename, 'rb')
-                    data = f.read(len(tag_contents))
-                    f.close()
+                    try:
+                        data = f.read(len(tag_contents))
+                    finally:
+                        f.close()
                     if data == tag_contents:
                         debug1('Skipping %r: excluding cache dir' % (prepend+name))
                         continue
