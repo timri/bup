@@ -74,14 +74,22 @@ def _recursive_dirlist(prepend, xdev, bup_dir=None,
             if exclude_caches:
                 tag_filename = 'CACHEDIR.TAG'
                 tag_contents = 'Signature: 8a477f597d28d172789f06886806bc55'
-                if os.path.exists(prepend+name+tag_filename):
-                    f = open(prepend+name+tag_filename, 'rb')
+                tag_path = path+tag_filename
+                if os.path.exists(tag_path):
+                    f = open(tag_path, 'rb')
                     try:
                         data = f.read(len(tag_contents))
                     finally:
                         f.close()
                     if data == tag_contents:
                         debug1('Skipping %r: excluding cache dir' % (prepend+name))
+                        try:
+                            st = xstat.lstat(tag_path)
+                        except OSError, e:
+                            add_error(Exception('%s: %s' % (realpath(tag_path), str(e))))
+                        # CACHEDIR.TAG matched -> only backup the tagfile and the dir-node itself
+                        yield (tag_path, st)
+                        yield (path, pst)
                         continue
             if bup_dir != None:
                 if os.path.normpath(path) == bup_dir:
