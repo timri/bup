@@ -208,7 +208,7 @@ exclude-from= skip --exclude paths in file (may be repeated)
 exclude-rx= skip paths matching the unanchored regex (may be repeated)
 exclude-rx-from= skip --exclude-rx patterns in file (may be repeated)
 exclude-if-present= exclude directory if the given file is present
-exclude-caches exclude directories containing a CACHEDIR.TAG
+exclude-caches exclude directories containing a CACHEDIR.TAG, except for the tag file itself
 v,verbose  increase log output (can be used more than once)
 x,xdev,one-file-system  don't cross filesystem boundaries
 """

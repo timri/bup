@@ -189,8 +189,9 @@ does, due to the accommodations described above.
     from backup.
 
 \--exclude-caches
-:   exclude all directories that contain a file CACHEDIR.TAG, whose
-    content begins with "Signature: 8a477f597d28d172789f06886806bc55".
+:   exclude the contents of all directories that contain a file CACHEDIR.TAG,
+    whose content begins with "Signature: 8a477f597d28d172789f06886806bc55",
+    except for the directory and the tag file itself.
     For more information on cachedir-tagging, see
     http://www.brynosaurus.com/cachedir/
 
