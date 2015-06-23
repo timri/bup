@@ -108,6 +108,7 @@ cmdline_tests := \
   t/test-index-clear.sh \
   t/test-index-check-device.sh \
   t/test-ls.sh \
+  t/test-revparse-vfsroot.sh \
   t/test-meta.sh \
   t/test-on.sh \
   t/test-restore-map-owner.sh \
