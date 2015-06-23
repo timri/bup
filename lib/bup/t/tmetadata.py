@@ -132,7 +132,7 @@ def test_metadata_method():
     utime(data_path, (0, test_time2))
     ex(bup_path, '-d', bup_dir, 'init')
     ex(bup_path, '-d', bup_dir, 'index', '-v', data_path)
-    ex(bup_path, '-d', bup_dir, 'save', '-tvvn', 'test', data_path)
+    ex(bup_path, '-d', bup_dir, 'save', '--tree', '-vvn', 'test', data_path)
     git.check_repo_or_die(bup_dir)
     top = vfs.RefList(None)
     n = top.lresolve('/test/latest' + realpath(data_path))

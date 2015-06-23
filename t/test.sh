@@ -27,7 +27,7 @@ WVPASS bup random 512 >$D/f
 WVPASS touch $D/d/z
 WVPASS touch $D/d/z
 WVPASS bup index $D
-WVPASS bup save -t $D
+WVPASS bup save --tree $D
 
 WVSTART "bloom"
 WVPASS bup bloom -c $(ls -1 "$BUP_DIR"/objects/pack/*.idx|head -n1)
@@ -48,7 +48,7 @@ WVSTART "save/git-fsck"
     WVPASS cd "$BUP_DIR"
     #git repack -Ad
     #git prune
-    WVPASS bup random 4k | WVPASS bup split -b
+    WVPASS bup random 4k | WVPASS bup split --blobs
     (WVPASS cd "$top/t/sampledata" && WVPASS bup save -vvn master /) || exit $?
     result="$(git fsck --full --strict 2>&1)" || exit $?
     n=$(echo "$result" |
@@ -220,7 +220,7 @@ WVSTART "save disjoint top-level directories"
 
     WVPASS bup init
     WVPASS bup index -vu $(pwd)/$D/x "$tmpdir2"
-    WVPASS bup save -t -n src $(pwd)/$D/x "$tmpdir2"
+    WVPASS bup save --tree -n src $(pwd)/$D/x "$tmpdir2"
 
     # For now, assume that "ls -a" and "sort" use the same order.
     actual="$(WVPASS bup ls -AF src/latest)" || exit $?

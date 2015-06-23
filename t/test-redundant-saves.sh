@@ -38,14 +38,14 @@ indexed_top="${tmpdir##/}"
 indexed_top=(${indexed_top%%/})
 unset IFS
 
-tree1=$(WVPASS bup save -t "$tmpdir/src") || exit $?
+tree1=$(WVPASS bup save --tree "$tmpdir/src") || exit $?
 indexed_tree1="$(WVPASS t/subtree-hash "$tree1" "${indexed_top[@]}" src)" \
     || exit $?
 
 result="$(WVPASS cd "$tmpdir/src"; WVPASS bup index -m)" || exit $?
 WVPASSEQ "$result" ""
 
-tree2=$(WVPASS bup save -t "$tmpdir/src") || exit $?
+tree2=$(WVPASS bup save --tree "$tmpdir/src") || exit $?
 indexed_tree2="$(WVPASS t/subtree-hash "$tree2" "${indexed_top[@]}" src)" \
     || exit $?
 
@@ -54,7 +54,7 @@ WVPASSEQ "$indexed_tree1" "$indexed_tree2"
 result="$(WVPASS bup index -s / | WVFAIL grep ^D)" || exit $?
 WVPASSEQ "$result" ""
 
-tree3=$(WVPASS bup save -t /) || exit $?
+tree3=$(WVPASS bup save --tree /) || exit $?
 indexed_tree3="$(WVPASS t/subtree-hash "$tree3" "${indexed_top[@]}" src)" || exit $?
 WVPASSEQ "$indexed_tree1" "$indexed_tree3"
 

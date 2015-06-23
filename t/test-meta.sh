@@ -87,7 +87,7 @@ test-src-save-restore()
         WVPASS rm -rf "$BUP_DIR"
         WVPASS bup init
         WVPASS bup index src
-        WVPASS bup save -t -n src src
+        WVPASS bup save --tree -n src src
         # Test extract.
         WVPASS force-delete src-restore
         WVPASS mkdir src-restore
@@ -164,7 +164,7 @@ WVSTART 'metadata save/restore (general)'
     WVPASS bup init
     WVPASS touch -t 201111111111 src-restore # Make sure the top won't match.
     WVPASS bup index src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS force-delete src-restore
     WVPASS bup restore -C src-restore "/src/latest$(pwd)/src/var/."
     WVPASS touch -t 201211111111 src-restore # Make sure the top won't match.
@@ -205,7 +205,7 @@ WVSTART 'metadata save/restore (using index metadata)'
     WVPASS rm -rf "$BUP_DIR"
     WVPASS bup init
     WVPASS bup index src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
 
     WVPASS force-delete src-restore-1
     WVPASS mkdir src-restore-1
@@ -220,7 +220,7 @@ WVSTART 'metadata save/restore (using index metadata)'
     # Bup should *not* pick up these metadata changes.
     WVPASS touch src/volatile/2
 
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
 
     WVPASS force-delete src-restore-2
     WVPASS mkdir src-restore-2
@@ -264,7 +264,7 @@ WVSTART 'metadata save/restore (hardlinks)'
         WVPASS ln hardlink-target hardlink-1
     ) || exit $?
     WVPASS bup index src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS hardlink-test-run-restore
     WVPASS "$TOP/t/compare-trees" -c src/ src-restore/src/
 
@@ -276,7 +276,7 @@ WVSTART 'metadata save/restore (hardlinks)'
         WVPASS echo whatever > something-new
     ) || exit $?
     WVPASS bup index src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS hardlink-test-run-restore
     WVPASS "$TOP/t/compare-trees" -c src/ src-restore/src/
 
@@ -293,7 +293,7 @@ WVSTART 'metadata save/restore (hardlinks)'
     WVPASS rm src/hardlink-b-1
     WVPASS ln src/hardlink-target-b src/hardlink-b-1
     WVPASS bup index -vv src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS hardlink-test-run-restore
     WVPASS echo ./src/hardlink-a-1 > hardlink-sets.expected
     WVPASS echo ./src/hardlink-target-a >> hardlink-sets.expected
@@ -318,7 +318,7 @@ WVSTART 'metadata save/restore (hardlinks)'
     WVPASS rm src/c src/d
     WVPASS touch src/c
     WVPASS ln src/c src/d
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS hardlink-test-run-restore
     WVPASS echo ./src/a > hardlink-sets.expected
     WVPASS echo ./src/b >> hardlink-sets.expected
@@ -336,7 +336,7 @@ WVSTART 'metadata save/restore (hardlinks)'
     WVPASS touch src/a/1
     WVPASS ln src/a/1 src/b/1
     WVPASS bup index -vv src
-    WVPASS bup save -t -n src src
+    WVPASS bup save --tree -n src src
     WVPASS force-delete src-restore
     WVPASS mkdir src-restore
     WVPASS bup restore -C src-restore "/src/latest$(pwd)/src/a/"
@@ -353,7 +353,7 @@ WVSTART 'metadata save/restore (hardlinks)'
     WVPASS touch src/a/1
     WVPASS ln src/a/1 src/b/1
     WVPASS bup index -vv src/a src/b
-    WVPASS bup save -t -n src src/a src/b
+    WVPASS bup save --tree -n src src/a src/b
     WVPASS hardlink-test-run-restore
     WVPASS echo ./src/a/1 > hardlink-sets.expected
     WVPASS echo ./src/b/1 >> hardlink-sets.expected

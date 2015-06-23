@@ -18,21 +18,21 @@ WVPASS bup init
 WVSTART "split"
 WVPASS echo a >a.tmp
 WVPASS echo b >b.tmp
-WVPASS bup split -b a.tmp >taga.tmp
-WVPASS bup split -b b.tmp >tagb.tmp
-WVPASS cat a.tmp b.tmp | WVPASS bup split -b >tagab.tmp
+WVPASS bup split --blobs a.tmp >taga.tmp
+WVPASS bup split --blobs b.tmp >tagb.tmp
+WVPASS cat a.tmp b.tmp | WVPASS bup split --blobs >tagab.tmp
 WVPASSEQ $(cat taga.tmp | wc -l) 1
 WVPASSEQ $(cat tagb.tmp | wc -l) 1
 WVPASSEQ $(cat tagab.tmp | wc -l) 1
 WVPASSEQ $(cat tag[ab].tmp | wc -l) 2
-WVPASSEQ "$(bup split -b a.tmp b.tmp)" "$(cat tagab.tmp)"
-WVPASSEQ "$(bup split -b --keep-boundaries a.tmp b.tmp)" "$(cat tag[ab].tmp)"
-WVPASSEQ "$(cat tag[ab].tmp | bup split -b --keep-boundaries --git-ids)" \
+WVPASSEQ "$(bup split --blobs a.tmp b.tmp)" "$(cat tagab.tmp)"
+WVPASSEQ "$(bup split --blobs --keep-boundaries a.tmp b.tmp)" "$(cat tag[ab].tmp)"
+WVPASSEQ "$(cat tag[ab].tmp | bup split --blobs --keep-boundaries --git-ids)" \
          "$(cat tag[ab].tmp)"
-WVPASSEQ "$(cat tag[ab].tmp | bup split -b --git-ids)" \
+WVPASSEQ "$(cat tag[ab].tmp | bup split --blobs --git-ids)" \
          "$(cat tagab.tmp)"
-WVPASS bup split --bench -b <"$top/t/testfile1" >tags1.tmp
-WVPASS bup split -vvvv -b "$top/t/testfile2" >tags2.tmp
+WVPASS bup split --bench --blobs <"$top/t/testfile1" >tags1.tmp
+WVPASS bup split -vvvv --blobs "$top/t/testfile2" >tags2.tmp
 WVPASS echo -n "" | WVPASS bup split -n split_empty_string.tmp
 WVPASS bup margin
 WVPASS bup midx -f
@@ -52,12 +52,12 @@ WVPASS bup midx -a
 WVPASSEQ "$(echo "$BUP_DIR"/objects/pack/*.midx)" \
 	""$BUP_DIR"/objects/pack/yyy.midx"
 WVPASS bup margin
-WVPASS bup split -t "$top/t/testfile2" >tags2t.tmp
-WVPASS bup split -t "$top/t/testfile2" --fanout 3 >tags2tf.tmp
-WVPASS bup split -r "$BUP_DIR" -c "$top/t/testfile2" >tags2c.tmp
-WVPASS bup split -r ":$BUP_DIR" -c "$top/t/testfile2" >tags2c.tmp
+WVPASS bup split --tree "$top/t/testfile2" >tags2t.tmp
+WVPASS bup split --tree "$top/t/testfile2" --fanout 3 >tags2tf.tmp
+WVPASS bup split -r "$BUP_DIR" --commit "$top/t/testfile2" >tags2c.tmp
+WVPASS bup split -r ":$BUP_DIR" --commit "$top/t/testfile2" >tags2c.tmp
 WVPASS ls -lR \
-    | WVPASS bup split -r ":$BUP_DIR" -c --fanout 3 --max-pack-objects 3 -n lslr \
+    | WVPASS bup split -r ":$BUP_DIR" --commit --fanout 3 --max-pack-objects 3 -n lslr \
     || exit $?
 WVPASS bup ls
 WVFAIL bup ls /does-not-exist

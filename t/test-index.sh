@@ -88,21 +88,21 @@ a
 ./"
 WVPASSEQ "$(cd $D && bup index -s .)" "$(cd $D && bup index -s .)"
 
-WVFAIL bup save -t $D/doesnt-exist-filename
+WVFAIL bup save --tree $D/doesnt-exist-filename
 
 WVPASS mv "$BUP_DIR/bupindex" "$BUP_DIR/bi.old"
-WVFAIL bup save -t $D/d/e/fifotest
+WVFAIL bup save --tree $D/d/e/fifotest
 WVPASS mkfifo $D/d/e/fifotest
 WVPASS bup index -u $D/d/e/fifotest
-WVPASS bup save -t $D/d/e/fifotest
-WVPASS bup save -t $D/d/e
+WVPASS bup save --tree $D/d/e/fifotest
+WVPASS bup save --tree $D/d/e
 WVPASS rm -f $D/d/e/fifotest
 WVPASS bup index -u $D/d/e
-WVFAIL bup save -t $D/d/e/fifotest
+WVFAIL bup save --tree $D/d/e/fifotest
 WVPASS mv "$BUP_DIR/bi.old" "$BUP_DIR/bupindex"
 
 WVPASS bup index -u $D/d/e
-WVPASS bup save -t $D/d/e
+WVPASS bup save --tree $D/d/e
 WVPASSEQ "$(cd $D && bup index -m)" \
 "g
 f
@@ -110,11 +110,11 @@ d/z
 d/
 a
 ./"
-WVPASS bup save -t $D/d
+WVPASS bup save --tree $D/d
 WVPASS bup index --fake-invalid $D/d/z
-WVPASS bup save -t $D/d/z
-WVPASS bup save -t $D/d/z  # test regenerating trees when no files are changed
-WVPASS bup save -t $D/d
+WVPASS bup save --tree $D/d/z
+WVPASS bup save --tree $D/d/z  # test regenerating trees when no files are changed
+WVPASS bup save --tree $D/d
 WVPASSEQ "$(cd $D && bup index -m)" \
 "g
 f
