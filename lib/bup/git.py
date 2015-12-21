@@ -1175,3 +1175,67 @@ def tags(repo_dir = None):
             tags[c] = []
         tags[c].append(name)  # more than one tag can point at 'c'
     return tags
+
+
+def walk_object(cat_pipe, id,
+                verbose=None,
+                parent_path=[],
+                stop_at=None,
+                include_data=None):
+    # Yield everything reachable from id via cat_pipe, stopping
+    # whenever stop_at(id) returns true.  Produce (id, type data) for
+    # each item, or (id, type) if include_data is false.
+    if stop_at and stop_at(id):
+        return
+
+    item_it = cat_pipe.get(id)  # FIXME: use include_data
+    type = item_it.next()
+
+    # FIXME: remove once cat pipe supports include_data.
+    need_data = include_data or type in ('commit', 'tree')
+    if not need_data:
+        list(item_it) # Dump the data (iterator).
+
+    if type == 'blob':
+        yield include_data and (id, type, ''.join(item_it)) or (id, type)
+    elif type == 'commit':
+        data = ''.join(item_it)
+        yield include_data and (id, type, data) or (id, type)
+
+        commit_items = parse_commit(data)
+        tree_id = commit_items.tree
+        for x in walk_object(cat_pipe, tree_id, verbose, parent_path,
+                             stop_at, include_data):
+            yield x
+        parents = commit_items.parents
+        for pid in parents:
+            for x in walk_object(cat_pipe, pid, verbose, parent_path,
+                                 stop_at, include_data):
+                yield x
+    elif type == 'tree':
+        data = ''.join(item_it)
+        yield include_data and (id, type, data) or (id, type)
+        for (mode, name, ent_id) in tree_decode(data):
+            if not verbose > 1:
+                for x in walk_object(cat_pipe, ent_id.encode('hex'),
+                                     stop_at=stop_at,
+                                     include_data=include_data):
+                    yield x
+            else:
+                demangled, bup_type = demangle_name(name, mode)
+                sub_path = parent_path + [demangled]
+                # Don't print the sub-parts of chunked files.
+                sub_v = verbose if bup_type == BUP_NORMAL else None
+                for x in walk_object(cat_pipe, ent_id.encode('hex'),
+                                     sub_v, sub_path,
+                                     stop_at, include_data):
+                    yield x
+                if stat.S_ISDIR(mode):
+                    if verbose > 1 and bup_type == BUP_NORMAL:
+                        log('%s/\n' % '/'.join(sub_path))
+                    elif verbose > 2:  # (and BUP_CHUNKED)
+                        log('%s\n' % '/'.join(sub_path))
+                elif verbose > 2:
+                    log('%s\n' % '/'.join(sub_path))
+    else:
+        raise Exception('unexpected repository object type %r' % type)
