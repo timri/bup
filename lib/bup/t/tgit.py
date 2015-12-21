@@ -414,3 +414,41 @@ def test__git_date_str():
         WVPASSEQ('0 +0000', git._git_date_str(0, 0))
         WVPASSEQ('0 -0130', git._git_date_str(0, -90 * 60))
         WVPASSEQ('0 +0130', git._git_date_str(0, 90 * 60))
+
+
+@wvtest
+def test_object_info():
+    with no_lingering_errors():
+        with test_tempdir('bup-tgit-') as tmpdir:
+            os.environ['BUP_MAIN_EXE'] = bup_exe
+            os.environ['BUP_DIR'] = bupdir = tmpdir + "/bup"
+            src = tmpdir + '/src'
+            mkdirp(src)
+            with open(src + '/1', 'w+') as f:
+                print f, 'something'
+            with open(src + '/2', 'w+') as f:
+                print f, 'something else'
+            git.init_repo(bupdir)
+            WVPASSEQ(list(git.object_info([])), [])
+            exc(bup_exe, 'index', src)
+            exc(bup_exe, 'save', '-n', 'src', '--strip', src)
+
+            src_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src').strip().split('\n')[0]
+            src_size = int(exo('git', '--git-dir', bupdir,
+                               'cat-file', '-s', 'src').strip().split('\n')[0])
+
+            tree_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src:').strip().split('\n')[0]
+            tree_size = int(exo('git', '--git-dir', bupdir,
+                                'cat-file', '-s', 'src:').strip().split('\n')[0])
+
+            blob_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src:1').strip().split('\n')[0]
+            blob_size = int(exo('git', '--git-dir', bupdir,
+                                'cat-file', '-s', 'src:1').strip().split('\n')[0])
+
+            WVPASSEQ(tuple(git.object_info([src_hash, tree_hash, blob_hash])),
+                     ((src_hash.decode('hex'), 'commit', src_size),
+                      (tree_hash.decode('hex'), 'tree', tree_size),
+                      (blob_hash.decode('hex'), 'blob', blob_size)))
