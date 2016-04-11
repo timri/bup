@@ -121,6 +121,10 @@ def sweep(live_objects, existing_count, cat_pipe, opt):
         if opt.verbose and new_pack_prefix:
             log('created ' + basename(new_pack_prefix) + '\n')
         for p in ns.stale_files:
+            if p.startswith(new_pack_prefix):
+                continue # Don't remove the new pack file
+            if not os.access(p, os.F_OK): # File does not exist (f.e. n/e par2-file)
+                continue
             if opt.verbose:
                 log('removing ' + basename(p) + '\n')
             os.unlink(p)
@@ -152,6 +156,9 @@ def sweep(live_objects, existing_count, cat_pipe, opt):
                     % git.repo_rel(basename(idx_name)))
             ns.stale_files.append(idx_name)
             ns.stale_files.append(idx_name[:-3] + 'pack')
+            # FIXME: other par2 sizes? Use glob instead?
+            ns.stale_files.append(idx_name[:-3] + 'par2')
+            ns.stale_files.append(idx_name[:-3] + 'vol000+200.par2')
             continue
 
         live_frac = idx_live_count / float(len(idx))
@@ -173,6 +180,9 @@ def sweep(live_objects, existing_count, cat_pipe, opt):
 
         ns.stale_files.append(idx_name)
         ns.stale_files.append(idx_name[:-3] + 'pack')
+        # FIXME: other par2 sizes? Use glob instead?
+        ns.stale_files.append(idx_name[:-3] + 'par2')
+        ns.stale_files.append(idx_name[:-3] + 'vol000+200.par2')
 
     if opt.verbose:
         progress('preserving live data (%d%% complete)\n'
