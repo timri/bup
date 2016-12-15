@@ -187,6 +187,9 @@ class Node(object):
     def __iter__(self):
         return iter(self.subs())
 
+    def repo_dir():
+        return self._repo_dir
+
     def fullname(self, stop_at=None):
         """Get this file's full path."""
         assert(self != stop_at)  # would be the empty string; too weird
