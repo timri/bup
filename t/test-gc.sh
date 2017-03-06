@@ -237,4 +237,29 @@ packs_after="$(ls "$BUP_DIR/objects/pack/"*.pack)" || exit $?
 WVPASSEQ 1 "$(grep -cE '^rewriting ' gc.log)"
 WVPASSEQ "$packs_before" "$packs_after"
 
+WVSTART "gc (remove par2-files)"
+
+WVPASS rm -rf "$BUP_DIR"
+WVPASS bup init
+WVPASS rm -rf src && mkdir src
+WVPASS echo 0 > src/0
+WVPASS echo 1 > src/1
+
+WVPASS bup index src
+WVPASS bup save -n src-1 src
+WVPASS bup fsck -g
+WVPASS rm src/0
+WVPASS bup index src
+WVPASS bup save -n src-2 src
+WVPASS bup fsck -g
+
+WVPASS bup rm --unsafe src-1
+
+parfiles_before="$(ls "$BUP_DIR/objects/pack/"*.par2)" || exit $?
+WVPASSEQ 4 $(echo "$parfiles_before" | wc -l)
+WVPASS bup gc $GC_OPTS -v --threshold 0
+# All par2 removed:
+WVFAIL ls "$BUP_DIR/objects/pack/"*.par2
+
+
 WVPASS rm -rf "$tmpdir"
