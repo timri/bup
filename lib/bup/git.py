@@ -713,17 +713,18 @@ class PackWriter:
         return self.objcache.exists(id, want_source=want_source)
 
     def just_write(self, sha, type, content):
-        """Write an object to the pack file, bypassing the objcache.  Fails if
-        sha exists()."""
+        """Write an object to the pack file without checking for duplication."""
         self._write(sha, type, content)
+        # If nothing else, gc doesn't have/want an objcache
+        if self.objcache is not None:
+            self.objcache.add(sha)
 
     def maybe_write(self, type, content):
         """Write an object to the pack file if not present and return its id."""
         sha = calc_hash(type, content)
         if not self.exists(sha):
-            self.just_write(sha, type, content)
             self._require_objcache()
-            self.objcache.add(sha)
+            self.just_write(sha, type, content)
         return sha
 
     def new_blob(self, blob):
@@ -910,7 +911,32 @@ def list_refs(refnames=None, repo_dir=None,
             yield (name, sha.decode('hex'))
 
 
-def read_ref(refname, repo_dir = None):
+def object_info(objects, repo_dir=None):
+    """Yield (hash, type, size), tuples for each object named in objects.
+    The type will be 'commit', 'tree', 'blob', or 'missing'.  For now,
+    this accepts the same object names that git cat-file does.
+
+    """
+    p = subprocess.Popen(['git', 'cat-file', '--batch-check'],
+                         preexec_fn=_gitenv(repo_dir),
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE)
+    out, err = p.communicate('\n'.join(objects))
+    assert(p.returncode == 0)
+    out = out.strip()
+    if not out:
+        return
+    for line in out.split('\n'):
+        info = line.split(' ')
+        type = info[1]
+        if type == 'missing':
+            yield info[0].decode('hex'), type, None
+        else:  # id, type, size = info
+            yield info[0].decode('hex'), type, int(info[2])
+
+
+
+def read_ref(refname, repo_dir=None):
     """Get the commit id of the most recent commit made on a given ref."""
     refs = list_refs(refnames=[refname], repo_dir=repo_dir, limit_to_heads=True)
     l = tuple(islice(refs, 2))

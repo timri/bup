@@ -1,11 +1,24 @@
 
 import sys, os, stat, time, random, subprocess, glob
+from subprocess import check_call
 
 from wvtest import *
 
 from bup import client, git
-from bup.helpers import mkdirp
+from bup.helpers import mkdirp, readpipe
 from buptest import no_lingering_errors, test_tempdir
+
+
+def exc(*cmd):
+    cmd_str = ' '.join(cmd)
+    print >> sys.stderr, cmd_str
+    check_call(cmd)
+
+
+def exo(*cmd):
+    cmd_str = ' '.join(cmd)
+    print >> sys.stderr, cmd_str
+    return readpipe(cmd)
 
 
 def randbytes(sz):
@@ -14,6 +27,13 @@ def randbytes(sz):
         s += chr(random.randrange(0,256))
     return s
 
+
+# FIXME: global state modifications below, i.e.
+#os.environ['BUP_MAIN_EXE'] = '../../../bup'
+#os.environ['BUP_DIR'] = bupdir = tmpdir
+
+top_dir = os.path.realpath('../../..')
+bup_exe = top_dir + '/bup'
 
 s1 = randbytes(10000)
 s2 = randbytes(10000)
@@ -26,7 +46,7 @@ IDX_PAT = '/*.idx'
 def test_server_split_with_indexes():
     with no_lingering_errors():
         with test_tempdir('bup-tclient-') as tmpdir:
-            os.environ['BUP_MAIN_EXE'] = '../../../bup'
+            os.environ['BUP_MAIN_EXE'] = bup_exe
             os.environ['BUP_DIR'] = bupdir = tmpdir
             git.init_repo(bupdir)
             lw = git.PackWriter()
@@ -46,7 +66,7 @@ def test_server_split_with_indexes():
 def test_multiple_suggestions():
     with no_lingering_errors():
         with test_tempdir('bup-tclient-') as tmpdir:
-            os.environ['BUP_MAIN_EXE'] = '../../../bup'
+            os.environ['BUP_MAIN_EXE'] = bup_exe
             os.environ['BUP_DIR'] = bupdir = tmpdir
             git.init_repo(bupdir)
 
@@ -64,8 +84,7 @@ def test_multiple_suggestions():
             s1sha = rw.new_blob(s1)
             WVPASS(rw.exists(s1sha))
             s2sha = rw.new_blob(s2)
-            # This is a little hacky, but ensures that we test the
-            # code under test
+            # This is a little hacky, but ensures that we test the code under test
             while (len(glob.glob(c.cachedir+IDX_PAT)) < 2 and
                    not c.conn.has_input()):
                 pass
@@ -82,7 +101,7 @@ def test_multiple_suggestions():
 def test_dumb_client_server():
     with no_lingering_errors():
         with test_tempdir('bup-tclient-') as tmpdir:
-            os.environ['BUP_MAIN_EXE'] = '../../../bup'
+            os.environ['BUP_MAIN_EXE'] = bup_exe
             os.environ['BUP_DIR'] = bupdir = tmpdir
             git.init_repo(bupdir)
             open(git.repo('bup-dumb-server'), 'w').close()
@@ -160,3 +179,90 @@ def test_remote_parsing():
             WVFAIL()
         except client.ClientError:
             WVPASS()
+
+
+@wvtest
+def test_path_info():
+    with no_lingering_errors():
+        with test_tempdir('bup-tclient-') as tmpdir:
+            os.environ['BUP_MAIN_EXE'] = bup_exe
+            os.environ['BUP_DIR'] = bupdir = tmpdir
+            src = tmpdir + '/src'
+            mkdirp(src)
+            with open(src + '/1', 'w+') as f:
+                print f, 'something'
+            with open(src + '/2', 'w+') as f:
+                print f, 'something else'
+            os.mkdir(src + '/dir')
+            git.init_repo(bupdir)
+            c = client.Client(bupdir, create=True)
+
+            info = c.path_info(['/'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            name, id, type = info[0]
+            WVPASSEQ(type, 'root')
+
+            info = c.path_info(['/not-there/'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0] is None)
+
+            data = exo(bup_exe, 'random', '128k')
+            with open(src + '/chunky', 'wb+') as f:
+                f.write(data)
+            exc(bup_exe, 'index', '-vv', src)
+            exc(bup_exe, 'save', '-n', 'src', '--strip', src)
+            exc(bup_exe, 'tag', 'src-latest-tag', 'src')
+            src_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src').strip().split('\n')
+            assert(len(src_hash) == 1)
+            src_hash = src_hash[0].decode('hex')
+            tree_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src:dir').strip().split('\n')[0].decode('hex')
+            file_hash = exo('git', '--git-dir', bupdir,
+                           'rev-parse', 'src:1').strip().split('\n')[0].decode('hex')
+            chunky_hash = exo('git', '--git-dir', bupdir,
+                              'rev-parse', 'src:chunky.bup').strip().split('\n')[0].decode('hex')
+            info = c.path_info(['/src'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/src', src_hash, 'branch'])
+
+            info = c.path_info(['/src/latest'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/src/latest', src_hash, 'save'])
+
+            info = c.path_info(['/src/latest/dir'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/src/latest/dir', tree_hash, 'dir'])
+
+            info = c.path_info(['/src/latest/1'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/src/latest/1', file_hash, 'file'])
+
+            info = c.path_info(['/src/latest/chunky'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/src/latest/chunky', chunky_hash, 'chunked-file'])
+
+            info = c.path_info(['/.tag/src-latest-tag'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/.tag/src-latest-tag', src_hash, 'commit'])
+
+            info = c.path_info(['.tag////src-latest-tag'])
+            WVPASS(info)
+            WVPASS(len(info) == 1)
+            WVPASS(info[0])
+            WVPASSEQ(info[0], ['/.tag/src-latest-tag', src_hash, 'commit'])

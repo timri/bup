@@ -9,9 +9,8 @@ from __future__ import print_function
 from collections import defaultdict
 from difflib import unified_diff
 from itertools import chain, dropwhile, groupby, takewhile
-from os import environ, chdir
+from os import chdir, environ, getcwd
 from os.path import abspath, dirname
-from pipes import quote
 from random import choice, randint
 from shutil import copytree, rmtree
 from subprocess import PIPE, Popen, check_call
@@ -21,43 +20,14 @@ import os, random, sys
 
 script_home = abspath(dirname(sys.argv[0] or '.'))
 sys.path[:0] = [abspath(script_home + '/../lib'), abspath(script_home + '/..')]
-top = os.getcwd()
-bup_cmd = top + '/bup'
 
-from buptest import test_tempdir
+from buptest import exc, ex, test_tempdir
 from wvtest import wvfail, wvpass, wvpasseq, wvpassne, wvstart
 
-from bup.helpers import partition, period_as_secs, readpipe
+from bup.helpers import partition, period_as_secs
 
-
-def logcmd(cmd):
-    if isinstance(cmd, basestring):
-        print(cmd, file=stderr)
-    else:
-        print(' '.join(map(quote, cmd)), file=stderr)
-
-def exc(cmd, shell=False):
-    logcmd(cmd)
-    check_call(cmd, shell=shell)
-
-def exo(cmd, stdin=None, stdout=True, stderr=False, shell=False, check=True):
-    logcmd(cmd)
-    p = Popen(cmd,
-              stdin=None,
-              stdout=(PIPE if stdout else None),
-              stderr=PIPE,
-              shell=shell)
-    out, err = p.communicate()
-    if check and p.returncode != 0:
-        raise Exception('subprocess %r failed with status %d, stderr: %r'
-                        % (' '.join(argv), p.returncode, err))
-    return out, err, p
-
-def bup(*args):
-    return exo((bup_cmd,) + args)[0]
-
-def bupc(*args):
-    return exc((bup_cmd,) + args)
+top = getcwd()
+bup_cmd = top + '/bup'
 
 def create_older_random_saves(n, start_utc, end_utc):
     with open('foo', 'w') as f:
@@ -151,8 +121,8 @@ def result_diffline(x):
 
 def check_prune_result(expected):
     actual = sorted([int(x)
-                     for x in exo(['git', 'log',
-                                   '--pretty=format:%at'])[0].splitlines()])
+                     for x in ex(['git', 'log',
+                                  '--pretty=format:%at']).out.splitlines()])
     if expected != actual:
         for x in expected:
             print('ex:', x, strftime('%Y-%m-%d-%H%M%S', localtime(x)),
@@ -189,19 +159,17 @@ with test_tempdir('prune-older-') as tmpdir:
     chdir(tmpdir + '/work')
     save_utcs = create_older_random_saves(save_population, three_years_ago, now)
     chdir(tmpdir)
-    test_set_hash = exo(['git', 'show-ref', '-s', 'master'])[0].rstrip()
-    ls_saves = bup('ls', 'master').splitlines()
+    test_set_hash = ex(['git', 'show-ref', '-s', 'master']).out.rstrip()
+    ls_saves = ex((bup_cmd, 'ls', 'master')).out.splitlines()
     wvpasseq(save_population + 1, len(ls_saves))
 
     wvstart('ensure everything kept, if no keep arguments')
     exc(['git', 'reset', '--hard', test_set_hash])
-    _, errmsg, proc = exo((bup_cmd,
-                           'prune-older', '-v', '--unsafe', '--no-gc',
-                           '--wrt', str(now)) \
-                          + ('master',),
-                          stdout=False, stderr=True, check=False)
-    wvpassne(proc.returncode, 0)
-    wvpass('at least one keep argument is required' in errmsg)
+    exr = ex((bup_cmd, 'prune-older', '-v', '--unsafe', '--no-gc',
+              '--wrt', str(now), 'master'),
+             stdout=False, check=False)
+    wvpassne(exr.rc, 0)
+    wvpass('at least one keep argument is required' in exr.err)
     check_prune_result(save_utcs)
 
 
@@ -214,10 +182,10 @@ with test_tempdir('prune-older-') as tmpdir:
                                     now):
         exc(['git', 'reset', '--hard', test_set_hash])
         expected = sorted(expected_retentions(save_utcs, now, spec))
-        exc((bup_cmd,
-             'prune-older', '-v', '--unsafe', '--no-gc', '--wrt', str(now)) \
+        exc((bup_cmd, 'prune-older', '-v', '--unsafe', '--no-gc',
+             '--wrt', str(now)) \
             + period_spec_to_period_args(spec) \
-            + ('master',))
+             + ('master',))
         check_prune_result(expected)
 
 
@@ -234,8 +202,7 @@ with test_tempdir('prune-older-') as tmpdir:
         rmtree('work/.git')
         copytree('clean-test-repo', 'work/.git')
         expected = sorted(expected_retentions(save_utcs, now, spec))
-        exc((bup_cmd,
-             'prune-older', '-v', '--unsafe', '--wrt', str(now)) \
+        exc((bup_cmd, 'prune-older', '-v', '--unsafe', '--wrt', str(now)) \
             + period_spec_to_period_args(spec) \
             + ('master',))
         check_prune_result(expected)
